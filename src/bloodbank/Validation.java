@@ -31,22 +31,21 @@ public class Validation {
         return false;
     }
 
-    // Default signature compatibility
+    // Default compliance signature
     public boolean validateBloodGroup() {
         return false;
     }
 
     public static boolean validatePhoneNumberStatic(String phone) {
         if (phone == null) return false;
-        // Basic check for a 10 digit number
-        return phone.matches("\\d{10}");
+        return phone.matches("\\d{10}"); // Must be exactly 10 digits
     }
 
     public boolean validatePhoneNumber(String phone) {
         return validatePhoneNumberStatic(phone);
     }
 
-    // Default signature compatibility
+    // Default compliance signature
     public boolean validatePhoneNumber() {
         return false;
     }
@@ -59,7 +58,7 @@ public class Validation {
         return validateAgeStatic(age, min, max);
     }
 
-    // Default signature compatibility
+    // Default compliance signature
     public boolean validateAge() {
         return false;
     }
@@ -79,7 +78,7 @@ public class Validation {
         return validateDateStatic(dateStr);
     }
 
-    // Default signature compatibility
+    // Default compliance signature
     public boolean validateDate() {
         return false;
     }

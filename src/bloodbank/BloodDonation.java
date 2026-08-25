@@ -23,18 +23,6 @@ public class BloodDonation extends Transaction {
     public void setQuantity(int quantity) { this.quantity = quantity; }
 
     @Override
-    public void executeTransaction() {
-        this.status = "Completed";
-        System.out.println("Donation recorded successfully and status set to Completed.");
-    }
-
-    @Override
-    public void cancelTransaction() {
-        this.status = "Cancelled";
-        System.out.println("Donation transaction cancelled.");
-    }
-
-    @Override
     public void displayTransaction() {
         System.out.println("----------------------------------------");
         System.out.println("Blood Donation Details:");
@@ -48,10 +36,11 @@ public class BloodDonation extends Transaction {
     }
 
     public void recordDonation() {
-        executeTransaction();
+        System.out.println("Donation " + transactionId + " recorded for Donor: " + donorId);
+        this.status = "Completed";
     }
 
     public void updateInventory() {
-        System.out.println("Updating inventory with donated blood unit...");
+        System.out.println("Inventory updated with " + quantity + " units of " + bloodGroup + " (ID: " + transactionId + ")");
     }
 }

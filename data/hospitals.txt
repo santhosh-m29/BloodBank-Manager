@@ -1,1 +1,2 @@
-HOSP_TEST_001,City General Hospital,789 Pine Rd,9876543210,Private,9998887776
+HOSP001,St. Jude Hospital,456 Medical Dr,555-0111,Private,911
+HOSP002,Grace Clinic,789 Care Blvd,555-0222,Public,100

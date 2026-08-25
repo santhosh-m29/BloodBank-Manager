@@ -1,59 +1,79 @@
 package bloodbank;
 
+import java.util.Scanner;
+
 public class BloodBank extends Organization {
     private String managerName;
-    private int totalBloodUnits;
+    private Inventory inventory;
 
     public BloodBank(String organizationId, String organizationName, String address, String contactNumber,
-                     String managerName, int totalBloodUnits) {
+                     String managerName, Inventory inventory) {
         super(organizationId, organizationName, address, contactNumber);
         this.managerName = managerName;
-        this.totalBloodUnits = totalBloodUnits;
+        this.inventory = inventory;
     }
 
     public String getManagerName() { return managerName; }
     public void setManagerName(String managerName) { this.managerName = managerName; }
 
-    public int getTotalBloodUnits() { return totalBloodUnits; }
-    public void setTotalBloodUnits(int totalBloodUnits) { this.totalBloodUnits = totalBloodUnits; }
+    public Inventory getInventory() { return inventory; }
+    public void setInventory(Inventory inventory) { this.inventory = inventory; }
 
     @Override
     public void displayOrganization() {
         System.out.println("----------------------------------------");
-        System.out.println("Blood Bank Details:");
+        System.out.println("Blood Bank Facility Details:");
         System.out.println("ID: " + organizationId);
         System.out.println("Name: " + organizationName);
         System.out.println("Address: " + address);
-        System.out.println("Contact No: " + contactNumber);
+        System.out.println("Contact Number: " + contactNumber);
         System.out.println("Manager Name: " + managerName);
-        System.out.println("Total Stock: " + totalBloodUnits + " units");
+        System.out.println("Inventory Total Stock: " + inventory.getTotalStock() + " units");
         System.out.println("----------------------------------------");
     }
 
     @Override
-    public void updateOrganization(String organizationName, String address, String contactNumber) {
-        this.organizationName = organizationName;
-        this.address = address;
-        this.contactNumber = contactNumber;
-    }
+    public void updateOrganization() {
+        Scanner sc = new Scanner(System.in);
+        System.out.println("Updating details for Blood Bank: " + organizationName);
+        System.out.print("Enter New Name (Current: " + organizationName + "): ");
+        String name = sc.nextLine().trim();
+        if (!name.isEmpty()) this.organizationName = name;
 
-    public void updateManager(String managerName) {
-        this.managerName = managerName;
+        System.out.print("Enter New Address (Current: " + address + "): ");
+        String addr = sc.nextLine().trim();
+        if (!addr.isEmpty()) this.address = addr;
+
+        System.out.print("Enter New Contact No (Current: " + contactNumber + "): ");
+        String phone = sc.nextLine().trim();
+        if (!phone.isEmpty() && Validation.validatePhoneNumberStatic(phone)) {
+            this.contactNumber = phone;
+        }
+
+        System.out.print("Enter New Manager Name (Current: " + managerName + "): ");
+        String mgr = sc.nextLine().trim();
+        if (!mgr.isEmpty()) this.managerName = mgr;
+        
+        System.out.println("Blood bank details updated.");
     }
 
     public void addBloodUnit() {
-        System.out.println("Adding blood units to inventory...");
+        // Concrete method from diagram
+        System.out.println("System Admin or Donation Flow adds blood units directly via Inventory.");
     }
 
     public void removeBloodUnit() {
-        System.out.println("Removing blood units from inventory...");
+        // Concrete method from diagram
+        System.out.println("Removing blood unit from inventory.");
     }
 
     public void transferBlood() {
-        System.out.println("Transferring blood units...");
+        // Concrete method from diagram
+        System.out.println("Initiating transfer of blood units.");
     }
 
     public void viewInventory() {
-        System.out.println("Displaying inventory details for blood bank: " + organizationName);
+        System.out.println("\n--- Inventory of Blood Bank: " + organizationName + " ---");
+        inventory.displayInventory();
     }
 }

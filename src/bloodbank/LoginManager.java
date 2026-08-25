@@ -1,16 +1,14 @@
 package bloodbank;
 
-import java.util.List;
-
 public class LoginManager {
     private String username;
     private String password;
-    private Admin loggedInAdmin;
+    private Person loggedInUser;
 
     public LoginManager() {
         this.username = "";
         this.password = "";
-        this.loggedInAdmin = null;
+        this.loggedInUser = null;
     }
 
     public String getUsername() { return username; }
@@ -19,59 +17,88 @@ public class LoginManager {
     public String getPassword() { return password; }
     public void setPassword(String password) { this.password = password; }
 
-    public Admin getLoggedInAdmin() { return loggedInAdmin; }
+    public Person getLoggedInUser() { return loggedInUser; }
 
-    public boolean authenticateUser(String username, String password, String adminFilePath) {
-        List<Admin> admins = FileManager.loadAdmins(adminFilePath);
-        for (Admin admin : admins) {
-            if (admin.getUsername().equals(username) && admin.getPassword().equals(password)) {
+    public boolean authenticateUser(String username, String password) {
+        // 1. Check Blood Bank Admins
+        for (BloodBankAdmin admin : Main.admins) {
+            if (admin.getUsername().equalsIgnoreCase(username) && admin.getPassword().equals(password)) {
                 this.username = username;
                 this.password = password;
-                this.loggedInAdmin = admin;
+                this.loggedInUser = admin;
                 return true;
             }
         }
+        
+        // 2. Check Hospital Staff
+        for (HospitalStaff staff : Main.hospitalStaffs) {
+            if (staff.getUsername().equalsIgnoreCase(username) && staff.getPassword().equals(password)) {
+                this.username = username;
+                this.password = password;
+                this.loggedInUser = staff;
+                return true;
+            }
+        }
+
+        // 3. Check Donors
+        for (Donor donor : Main.donors) {
+            if (donor.getUsername().equalsIgnoreCase(username) && donor.getPassword().equals(password)) {
+                this.username = username;
+                this.password = password;
+                this.loggedInUser = donor;
+                return true;
+            }
+        }
+
+        // 4. Check Patients
+        for (Patient patient : Main.patients) {
+            if (patient.getUsername().equalsIgnoreCase(username) && patient.getPassword().equals(password)) {
+                this.username = username;
+                this.password = password;
+                this.loggedInUser = patient;
+                return true;
+            }
+        }
+
         return false;
     }
 
+    // Parameterless compliance method
     public boolean authenticateUser() {
-        return false;
+        return loggedInUser != null;
     }
 
-    public void changePassword(String newPassword, String adminFilePath) {
-        if (loggedInAdmin == null) {
-            System.out.println("No administrator currently logged in.");
+    public void changePassword(String newPassword) {
+        if (loggedInUser == null) {
+            System.out.println("No user is currently logged in.");
             return;
         }
         
-        List<Admin> admins = FileManager.loadAdmins(adminFilePath);
-        boolean updated = false;
-        for (Admin admin : admins) {
-            if (admin.getUsername().equals(loggedInAdmin.getUsername())) {
-                admin.setPassword(newPassword);
-                loggedInAdmin.setPassword(newPassword);
-                this.password = newPassword;
-                updated = true;
-                break;
-            }
+        loggedInUser.setPassword(newPassword);
+        this.password = newPassword;
+
+        // Save updated details to corresponding files
+        if (loggedInUser instanceof BloodBankAdmin) {
+            Main.saveAdminsToFile();
+        } else if (loggedInUser instanceof HospitalStaff) {
+            Main.saveHospitalStaffsToFile();
+        } else if (loggedInUser instanceof Donor) {
+            Main.saveDonorsToFile();
+        } else if (loggedInUser instanceof Patient) {
+            Main.savePatientsToFile();
         }
-        
-        if (updated) {
-            FileManager.saveAdmins(adminFilePath, admins);
-            System.out.println("Password changed successfully.");
-        } else {
-            System.out.println("Error: Current admin not found in file.");
-        }
+        System.out.println("Password changed successfully.");
     }
 
+    // Parameterless compliance method
     public void changePassword() {
-        System.out.println("Password changed.");
+        System.out.println("Use changePassword(String newPassword) to update your password.");
     }
 
     public void logoutUser() {
-        if (loggedInAdmin != null) {
-            System.out.println("Admin '" + loggedInAdmin.getUsername() + "' logged out.");
-            loggedInAdmin = null;
+        if (loggedInUser != null) {
+            System.out.println("User '" + loggedInUser.getUsername() + "' logged out successfully.");
+            loggedInUser = null;
             this.username = "";
             this.password = "";
         } else {

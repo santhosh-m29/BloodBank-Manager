@@ -3,7 +3,7 @@ package bloodbank;
 public abstract class Transaction {
     protected String transactionId;
     protected String transactionDate; // Format: YYYY-MM-DD
-    protected String status; // Pending, Approved, Rejected, Completed, Cancelled
+    protected String status;          // "Pending", "Approved", "Rejected", "Completed", etc.
 
     public Transaction(String transactionId, String transactionDate, String status) {
         this.transactionId = transactionId;
@@ -20,7 +20,5 @@ public abstract class Transaction {
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
 
-    public abstract void executeTransaction();
-    public abstract void cancelTransaction();
     public abstract void displayTransaction();
 }

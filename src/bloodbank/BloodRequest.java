@@ -1,22 +1,24 @@
 package bloodbank;
 
 public class BloodRequest extends Transaction {
-    private String recipientId;
-    private String hospitalId; // Can be empty or "N/A" if recipient requested directly
+    private String patientId;
+    private String hospitalId;
     private String bloodGroup;
     private int unitsRequested;
+    private String urgency; // "NORMAL" or "EMERGENCY"
 
     public BloodRequest(String transactionId, String transactionDate, String status,
-                        String recipientId, String hospitalId, String bloodGroup, int unitsRequested) {
+                        String patientId, String hospitalId, String bloodGroup, int unitsRequested, String urgency) {
         super(transactionId, transactionDate, status);
-        this.recipientId = recipientId;
+        this.patientId = patientId;
         this.hospitalId = hospitalId;
         this.bloodGroup = bloodGroup;
         this.unitsRequested = unitsRequested;
+        this.urgency = urgency;
     }
 
-    public String getRecipientId() { return recipientId; }
-    public void setRecipientId(String recipientId) { this.recipientId = recipientId; }
+    public String getPatientId() { return patientId; }
+    public void setPatientId(String patientId) { this.patientId = patientId; }
 
     public String getHospitalId() { return hospitalId; }
     public void setHospitalId(String hospitalId) { this.hospitalId = hospitalId; }
@@ -27,17 +29,8 @@ public class BloodRequest extends Transaction {
     public int getUnitsRequested() { return unitsRequested; }
     public void setUnitsRequested(int unitsRequested) { this.unitsRequested = unitsRequested; }
 
-    @Override
-    public void executeTransaction() {
-        this.status = "Approved";
-        System.out.println("Blood request executed/approved.");
-    }
-
-    @Override
-    public void cancelTransaction() {
-        this.status = "Cancelled";
-        System.out.println("Blood request cancelled.");
-    }
+    public String getUrgency() { return urgency; }
+    public void setUrgency(String urgency) { this.urgency = urgency; }
 
     @Override
     public void displayTransaction() {
@@ -46,29 +39,27 @@ public class BloodRequest extends Transaction {
         System.out.println("Request ID (Txn ID): " + transactionId);
         System.out.println("Date: " + transactionDate);
         System.out.println("Status: " + status);
-        System.out.println("Recipient ID: " + recipientId);
-        System.out.println("Hospital ID: " + (hospitalId.isEmpty() ? "N/A" : hospitalId));
+        System.out.println("Patient ID: " + patientId);
+        System.out.println("Hospital ID: " + hospitalId);
         System.out.println("Blood Group Required: " + bloodGroup);
         System.out.println("Units Requested: " + unitsRequested + " units");
+        System.out.println("Urgency: " + urgency);
         System.out.println("----------------------------------------");
     }
 
-    public void processRequest() {
-        System.out.println("Processing blood request...");
-    }
-
     public boolean checkAvailability() {
-        // Business logic will delegate to inventory
-        return true;
+        // Checks usability in Central Inventory
+        int stock = Main.inventory.getStockForGroup(bloodGroup);
+        return stock >= unitsRequested;
     }
 
     public void approveRequest() {
-        this.status = "Approved";
-        System.out.println("Request " + transactionId + " Approved.");
+        this.status = "APPROVED";
+        System.out.println("Request " + transactionId + " is APPROVED.");
     }
 
     public void rejectRequest() {
-        this.status = "Rejected";
-        System.out.println("Request " + transactionId + " Rejected.");
+        this.status = "REJECTED";
+        System.out.println("Request " + transactionId + " is REJECTED.");
     }
 }

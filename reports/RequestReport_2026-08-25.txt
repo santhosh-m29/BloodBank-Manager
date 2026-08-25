@@ -1,0 +1,13 @@
+=========================================================================================
+                                 REQUEST FULFILLMENT REPORT                              
+Title: Main System Report
+Generated Date: 2026-08-25
+=========================================================================================
+Txn ID          Date         Patient ID      Hospital ID     Blood Group  Units    Urgency      Status    
+-----------------------------------------------------------------------------------------
+REQ_TXN_001     2026-08-21   PAT001          HOSP001         A+           2        NORMAL       COMPLETED 
+REQ_TXN_002     2026-08-23   PAT002          HOSP002         O-           1        EMERGENCY    COMPLETED 
+REQ_TXN_003     2026-08-24   PAT003          HOSP001         B+           3        NORMAL       APPROVED  
+-----------------------------------------------------------------------------------------
+Total Requests: 3 | Approved/Fulfilled: 3 | Total Units Requested: 6 units
+=========================================================================================

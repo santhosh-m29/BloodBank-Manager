@@ -1,1 +1,3 @@
-admin,admin123,Administrator
+ADM001,System Administrator,35,Male,9999999999,Blood Bank HQ,admin,admin123,BLOOD_BANK_ADMIN,EMP001,BB001,SuperAdmin
+ADM002,Alice Admin,29,Female,9998887776,Central Office,alice_admin,admin123,BLOOD_BANK_ADMIN,EMP002,BB001,Regular
+ADM003,John Doe,42,Male,9876543210,Branch Office,john_admin,pass123,BLOOD_BANK_ADMIN,EMP003,BB001,Regular

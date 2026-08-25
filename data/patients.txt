@@ -1,0 +1,4 @@
+PAT001,Bob Brown,45,Male,5556667777,101 Maple Ave,patient,patient123,PATIENT,A+,Anemia,Dr. Green,2,HOSP001
+PAT002,Jane Davis,60,Female,7778889999,202 Birch Ln,jane_p,pass123,PATIENT,O+,Leukemia,Dr. Watson,4,HOSP002
+PAT003,Charles Miller,33,Male,8889990000,303 Cedar Dr,charles_m,pass123,PATIENT,B+,Trauma,Dr. Grey,3,HOSP001
+PAT_1787637671853,Santhosh,18,Male,8778565698,Chennai,santh29osh,ssn,PATIENT,A+,Accident,Sushil,10,HOSP001

@@ -1,5 +1,9 @@
 package bloodbank;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
+import java.time.temporal.ChronoUnit;
+import java.util.Scanner;
 
 public class Donor extends Person {
     private String bloodGroup;
@@ -9,8 +13,9 @@ public class Donor extends Person {
     private boolean eligible;
 
     public Donor(String personId, String name, int age, String gender, String phoneNumber, String address,
-                 String bloodGroup, double haemoglobin, double weight, String lastDonationDate) {
-        super(personId, name, age, gender, phoneNumber, address);
+                 String username, String password, String role, String bloodGroup, double haemoglobin,
+                 double weight, String lastDonationDate) {
+        super(personId, name, age, gender, phoneNumber, address, username, password, role);
         this.bloodGroup = bloodGroup;
         this.haemoglobin = haemoglobin;
         this.weight = weight;
@@ -30,9 +35,9 @@ public class Donor extends Person {
     public String getLastDonationDate() { return lastDonationDate; }
     public void setLastDonationDate(String lastDonationDate) { this.lastDonationDate = lastDonationDate; }
 
-    public boolean isEligible() { 
+    public boolean isEligible() {
         this.eligible = checkEligibility();
-        return eligible; 
+        return eligible;
     }
     public void setEligible(boolean eligible) { this.eligible = eligible; }
 
@@ -40,24 +45,63 @@ public class Donor extends Person {
     public String getDetails() {
         return "Donor [ID: " + personId + ", Name: " + name + ", Blood Group: " + bloodGroup + 
                ", Age: " + age + ", Weight: " + weight + "kg, Hb: " + haemoglobin + 
-               ", Eligible: " + (eligible ? "Yes" : "No") + "]";
+               ", Eligible: " + (isEligible() ? "Yes" : "No") + "]";
     }
 
     @Override
-    public void updateDetails(String name, int age, String gender, String phoneNumber, String address) {
-        this.name = name;
-        this.age = age;
-        this.gender = gender;
-        this.phoneNumber = phoneNumber;
-        this.address = address;
-        this.eligible = checkEligibility();
-    }
+    public void updateDetails() {
+        Scanner sc = new Scanner(System.in);
+        System.out.println("Updating details for Donor: " + name);
+        System.out.print("Enter New Name (Current: " + name + "): ");
+        String newName = sc.nextLine().trim();
+        if (!newName.isEmpty()) this.name = newName;
 
-    public void updateMedicalDetails(double haemoglobin, double weight, String lastDonationDate) {
-        this.haemoglobin = haemoglobin;
-        this.weight = weight;
-        this.lastDonationDate = lastDonationDate;
+        System.out.print("Enter New Age (Current: " + age + "): ");
+        String ageStr = sc.nextLine().trim();
+        if (!ageStr.isEmpty()) {
+            try {
+                this.age = Integer.parseInt(ageStr);
+            } catch (NumberFormatException ignored) {}
+        }
+
+        System.out.print("Enter New Gender (Current: " + gender + "): ");
+        String newGender = sc.nextLine().trim();
+        if (!newGender.isEmpty()) this.gender = newGender;
+
+        System.out.print("Enter New Phone (Current: " + phoneNumber + "): ");
+        String phone = sc.nextLine().trim();
+        if (!phone.isEmpty() && Validation.validatePhoneNumberStatic(phone)) {
+            this.phoneNumber = phone;
+        }
+
+        System.out.print("Enter New Address (Current: " + address + "): ");
+        String newAddr = sc.nextLine().trim();
+        if (!newAddr.isEmpty()) this.address = newAddr;
+
+        System.out.print("Enter New Haemoglobin level (Current: " + haemoglobin + "): ");
+        String hbStr = sc.nextLine().trim();
+        if (!hbStr.isEmpty()) {
+            try {
+                this.haemoglobin = Double.parseDouble(hbStr);
+            } catch (NumberFormatException ignored) {}
+        }
+
+        System.out.print("Enter New Weight (Current: " + weight + "): ");
+        String wStr = sc.nextLine().trim();
+        if (!wStr.isEmpty()) {
+            try {
+                this.weight = Double.parseDouble(wStr);
+            } catch (NumberFormatException ignored) {}
+        }
+
+        System.out.print("Enter Last Donation Date [YYYY-MM-DD] (Current: " + lastDonationDate + "): ");
+        String ldd = sc.nextLine().trim();
+        if (!ldd.isEmpty()) {
+            this.lastDonationDate = ldd;
+        }
+
         this.eligible = checkEligibility();
+        System.out.println("Donor details updated. Eligibility status: " + (this.eligible ? "ELIGIBLE" : "INELIGIBLE"));
     }
 
     @Override
@@ -71,40 +115,53 @@ public class Donor extends Person {
         System.out.println("Phone: " + phoneNumber);
         System.out.println("Address: " + address);
         System.out.println("Blood Group: " + bloodGroup);
-        System.out.println("Hemoglobin: " + haemoglobin + " g/dL");
+        System.out.println("Haemoglobin: " + haemoglobin + " g/dL");
         System.out.println("Weight: " + weight + " kg");
-        System.out.println("Last Donation: " + (lastDonationDate.isEmpty() ? "N/A" : lastDonationDate));
+        System.out.println("Last Donation Date: " + (lastDonationDate == null || lastDonationDate.isEmpty() ? "None" : lastDonationDate));
         System.out.println("Eligible: " + (isEligible() ? "YES" : "NO"));
         System.out.println("----------------------------------------");
     }
 
-    public void registerDonor() {
-        System.out.println("Donor " + name + " has been successfully registered.");
-    }
-
-    public final boolean checkEligibility() {
-        // Validation Rules:
-        // * Age >= 18 and Age <= 60
-        // * Weight >= 50 kg
-        // * Hemoglobin >= 12.5
-        // * Valid Blood Group
-        boolean isAgeValid = (age >= 18 && age <= 60);
-        boolean isWeightValid = (weight >= 50.0);
-        boolean isHbValid = (haemoglobin >= 12.5);
-        boolean isBloodGroupValid = Validation.isValidBloodGroupStatic(bloodGroup);
+    public boolean checkEligibility() {
+        // Business Rules:
+        // - Age: 18 to 65
+        // - Weight: >= 50.0 kg
+        // - Haemoglobin: >= 12.5 g/dL
+        // - Blood Group: Must be valid
+        // - Last Donation: Must be >= 90 days ago (or empty if first time)
         
-        return isAgeValid && isWeightValid && isHbValid && isBloodGroupValid;
-    }
-
-    public void donateBlood() {
-        if (isEligible()) {
-            System.out.println("Donor " + name + " is donating blood.");
-        } else {
-            System.out.println("Donor " + name + " is NOT eligible to donate blood.");
+        if (age < 18 || age > 65) return false;
+        if (weight < 50.0) return false;
+        if (haemoglobin < 12.5) return false;
+        if (!Validation.isValidBloodGroupStatic(bloodGroup)) return false;
+        
+        if (lastDonationDate != null && !lastDonationDate.trim().isEmpty()) {
+            try {
+                LocalDate lastDate = LocalDate.parse(lastDonationDate.trim());
+                LocalDate now = LocalDate.now();
+                long days = ChronoUnit.DAYS.between(lastDate, now);
+                if (days < 90) {
+                    return false; // Not eligible if less than 90 days
+                }
+            } catch (DateTimeParseException e) {
+                // If parsing fails, fall back to eligible assuming date is invalid/empty seed format
+            }
         }
+        
+        return true;
     }
 
     public void viewDonationHistory() {
-        System.out.println("Donation history for donor: " + name);
+        System.out.println("Donation History for Donor: " + name + " (ID: " + personId + ")");
+        boolean found = false;
+        for (BloodDonation donation : Main.donations) {
+            if (donation.getDonorId().equals(this.personId)) {
+                donation.displayTransaction();
+                found = true;
+            }
+        }
+        if (!found) {
+            System.out.println("No donation records found for this donor.");
+        }
     }
 }

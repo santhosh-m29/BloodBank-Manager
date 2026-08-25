@@ -26,5 +26,12 @@ public abstract class Organization {
     public void setContactNumber(String contactNumber) { this.contactNumber = contactNumber; }
 
     public abstract void displayOrganization();
-    public abstract void updateOrganization(String organizationName, String address, String contactNumber);
+    public abstract void updateOrganization();
+
+    // Overloaded helper for test or batch operations
+    public void updateOrganization(String organizationName, String address, String contactNumber) {
+        this.organizationName = organizationName;
+        this.address = address;
+        this.contactNumber = contactNumber;
+    }
 }
