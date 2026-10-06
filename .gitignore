@@ -1,0 +1,6 @@
+/build/
+/bin/
+/data/v2/
+/reports/v2/
+*.tmp
+*.lock

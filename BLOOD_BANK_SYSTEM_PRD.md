@@ -1,1161 +1,1928 @@
-# Product Requirements Document — Blood Bank Management System
-
-## 1. Purpose
-
-Build a **complete, runnable Blood Bank Management System** based strictly on the supplied `JAVA.drawio` class diagram.
-
-The implementation must cover **every class, attribute, method, inheritance relationship, login flow, validation rule, transaction flow, inventory operation, alert, report, persistence operation, and menu flow** represented by the class diagram.
-
-This is not a UI mockup or partial prototype. Implement the actual application logic end-to-end.
-
-### Primary goal
-
-Create a robust Java application in which:
-
-- users can authenticate according to their role;
-- donors can check eligibility and view donation history;
-- hospital staff can create patients, request blood, issue blood, inspect local stock, and restock;
-- blood-bank administrators can register donations, initiate lab tests, approve/reject requests, and dispatch transfers;
-- hospitals can submit requests and inspect request history and inventory;
-- blood units are tracked through collection, testing, inventory, expiry, issue, and transfer;
-- emergency requests receive priority treatment;
-- low-stock and expiry alerts are generated;
-- reports can be generated and exported;
-- data persists between application runs;
-- all validation and error cases are handled cleanly.
-
-Do not remove functionality simply because the diagram declares methods as `void`. A method declared `void` should still perform its business operation and update the appropriate domain state.
+# PRODUCT REQUIREMENTS DOCUMENT
+## Blood Bank Management System
 
 ---
 
-# 2. Source of Truth
+# 1. Project Overview
 
-The supplied class diagram is the primary structural specification.
+The **Blood Bank Management System** is a Java-based blood management application designed to manage the complete flow of blood from **donor → blood bank → hospital → patient**.
 
-Do not rename or remove the diagram's classes, core attributes, or public methods without a compelling implementation reason.
+The system maintains two levels of blood inventory:
 
-The diagram contains the following classes:
+```text
+                 DONOR
+                   │
+                   ▼
+             BLOOD DONATION
+                   │
+                   ▼
+          ┌──────────────────┐
+          │    BLOOD BANK    │
+          │  Central Stock   │
+          └────────┬─────────┘
+                   │
+             Blood Transfer
+                   │
+                   ▼
+          ┌──────────────────┐
+          │     HOSPITAL     │
+          │   Local Stock    │
+          └────────┬─────────┘
+                   │
+              Issue Blood
+                   │
+                   ▼
+                PATIENT
+```
 
-### Abstract/base classes
+The blood bank acts as the **central blood storage facility**, while every hospital maintains its own **local inventory**.
 
-1. `Person`
-2. `Staff`
-3. `Organization`
-4. `Transaction`
+Patients are treated through their hospital. They do not directly receive blood from the blood bank.
 
-### Person hierarchy
+The application demonstrates Java OOP concepts including:
 
-5. `HospitalStaff`
-6. `BloodBankAdmin`
-7. `Donor`
-8. `Patient`
-
-### Organization hierarchy
-
-9. `BloodBank`
-10. `Hospital`
-
-### Inventory and blood domain
-
-11. `Inventory`
-12. `BloodUnit`
-
-### Transaction hierarchy
-
-13. `BloodDonation`
-14. `BloodRequest`
-15. `EmergencyRequest`
-16. `BloodTransfer`
-
-### Utility/service classes
-
-17. `LoginManager`
-18. `AlertManager`
-19. `ReportGenerator`
-20. `FileManager`
-21. `Validation`
-
-### Application classes
-
-22. `Menu`
-23. `Main`
+- Abstraction
+- Inheritance
+- Encapsulation
+- Polymorphism
+- Composition
+- Association
+- Collections
+- File handling
+- Authentication
+- Validation
+- Transaction management
 
 ---
 
-# 3. Class Diagram Contract
+# 2. Main Objectives
 
-## 3.1 Person
+The system must:
 
-`Person` is abstract.
-
-### Protected attributes
-
-- `personId: String`
-- `name: String`
-- `age: int`
-- `gender: String`
-- `phoneNumber: String`
-- `address: String`
-
-### Methods
-
-- `getDetails(): String`
-- `updateDetails(): void`
-- `displayDetails(): void`
-
-### Requirements
-
-- Store common personal information.
-- `getDetails()` returns a complete formatted representation.
-- `updateDetails()` must support updating editable personal information with validation.
-- `displayDetails()` must print/render the person's details.
-- IDs must be unique.
-- Age and phone number must be validated.
+1. Manage donor information.
+2. Allow donors to initiate blood donation.
+3. Perform laboratory testing before blood is registered into usable blood-bank stock.
+4. Maintain centralized blood-bank inventory.
+5. Maintain separate inventory for every hospital.
+6. Allow hospital staff to create patients.
+7. Allow hospitals to create blood requests.
+8. Prioritize urgent blood requests.
+9. Automatically determine whether hospital stock is sufficient.
+10. Allow blood banks to transfer blood to hospitals.
+11. Allow hospitals to issue blood to patients.
+12. Maintain complete transaction history.
+13. Track blood-unit status and expiry.
+14. Provide alerts for low stock and expiry.
+15. Generate reports.
+16. Persist application data using files.
+17. Provide role-based login and authorization.
 
 ---
 
-# 4. Staff Hierarchy
+# 3. User Roles
 
-## 4.1 Staff
+The application contains four user-facing roles:
 
-`Staff` is abstract and extends `Person`.
+| Role | Purpose |
+|---|---|
+| Donor | Donates blood to the blood bank |
+| Patient | Views personal/request information |
+| Hospital | Manages patients, local inventory and blood requests |
+| Blood Bank | Manages donations, testing, inventory and hospital transfers |
 
-### Protected attributes
+Internally, the hospital role is represented by `HospitalStaff`, while the blood-bank role is represented by `BloodBankAdmin`.
 
-- `employeeId: String`
-- `facilityId: String`
-
-### Method
-
-- `displayStaffDetails(): void`
-
-### Requirements
-
-- Maintain staff identity and facility association.
-- Staff IDs must be unique.
-- Facility IDs must reference a valid hospital or blood bank.
+The user does **not** need to think of Hospital Staff and Hospital as two separate login roles.
 
 ---
 
-## 4.2 HospitalStaff
+# 4. Core System Architecture
 
-Extends `Staff`.
+The system follows:
 
-### Private attribute
+```text
+PERSON
+│
+├── DONOR
+├── PATIENT
+└── STAFF
+     │
+     ├── HOSPITAL STAFF
+     └── BLOOD BANK ADMIN
+```
 
-- `department: String`
+Organizations:
 
-### Methods
+```text
+ORGANIZATION
+│
+├── BLOOD BANK
+└── HOSPITAL
+```
 
-- `createPatient(): void`
-- `requestBlood(): void`
-- `issueBlood(): void`
-- `checkLocalStock(): void`
-- `restock(): void`
+Transactions:
 
-### Requirements
+```text
+TRANSACTION
+│
+├── BLOOD DONATION
+├── BLOOD REQUEST
+└── BLOOD TRANSFER
+```
+
+Inventory:
+
+```text
+BLOOD BANK
+     │
+     └── Inventory
+          └── BloodUnit[]
+
+HOSPITAL
+     │
+     └── Inventory
+          └── BloodUnit[]
+```
+
+---
+
+# 5. Person
+
+`Person` is an abstract base class.
+
+## Attributes
+
+```text
+personId: String
+name: String
+age: int
+gender: String
+phoneNumber: String
+address: String
+```
+
+## Methods
+
+```text
+getDetails(): String
+updateDetails(): void
+displayDetails(): void
+```
+
+## Responsibilities
+
+`Person` stores information common to all people in the system.
+
+The following classes inherit from it:
+
+```text
+Person
+├── Donor
+├── Patient
+└── Staff
+```
+
+IDs must be unique.
+
+Age and phone number must be validated before storing.
+
+---
+
+# 6. Staff
+
+`Staff` is an abstract class extending `Person`.
+
+## Attributes
+
+```text
+employeeId: String
+facilityId: String
+```
+
+## Method
+
+```text
+displayStaffDetails(): void
+```
+
+`facilityId` identifies the facility where the staff member works.
+
+For hospital staff:
+
+```text
+facilityId → Hospital ID
+```
+
+For blood-bank administrators:
+
+```text
+facilityId → Blood Bank ID
+```
+
+---
+
+# 7. HospitalStaff
+
+`HospitalStaff` extends `Staff`.
+
+## Attribute
+
+```text
+department: String
+```
+
+## Methods
+
+```text
+createPatient(): void
+requestBlood(): void
+issueBlood(): void
+```
+
+## Responsibilities
 
 Hospital staff can:
 
-1. Create/register a patient.
-2. Create blood requests for patients.
-3. View/search the hospital's local blood inventory.
-4. Issue blood to a patient only when the request is approved and stock is available.
-5. Request restocking from the blood bank when local stock is insufficient.
-6. Maintain department information.
-7. Only operate on the hospital associated with their `facilityId`.
+- Create patients.
+- Create blood requests.
+- View hospital inventory.
+- Check blood availability.
+- Issue blood to patients.
+- Request blood from the blood bank.
+- View request history.
+
+The hospital staff member can only operate on the hospital associated with their `facilityId`.
 
 ---
 
-## 4.3 BloodBankAdmin
+# 8. BloodBankAdmin
 
-Extends `Staff`.
+`BloodBankAdmin` extends `Staff`.
 
-### Private attribute
+## Attribute
 
-- `adminLevel: String`
+```text
+adminLevel: String
+```
 
-### Methods
+## Methods
 
-- `registerDonation(): void`
-- `initiateLabTest(): boolean`
-- `approveRequest(): void`
-- `dispatchTransfer(): void`
+```text
+registerDonation(): void
+initiateLabTest(): boolean
+approveRequest(): void
+dispatchTransfer(): void
+```
 
-### Requirements
+## Responsibilities
 
-Blood-bank administrators can:
+Blood-bank administrators manage:
 
-1. Register donor donations.
-2. Initiate testing for collected blood.
-3. Mark tested units as approved/rejected according to test results.
-4. Review and approve valid blood requests.
-5. Reject invalid/unavailable requests.
-6. Dispatch approved transfers from the blood bank.
-7. Perform administrator-level inventory operations.
-8. Respect admin-level authorization where applicable.
+- Blood donation registration.
+- Laboratory testing.
+- Blood-unit approval/rejection.
+- Blood-bank inventory.
+- Hospital blood requests.
+- Transfer approval.
+- Blood dispatch.
 
 ---
 
-# 5. Donor
+# 9. Donor
 
 `Donor` extends `Person`.
 
-### Private attributes
+## Attributes
 
-- `bloodGroup: String`
-- `haemoglobin: double`
-- `weight: double`
-- `lastDonationDate: String`
-- `eligible: boolean`
+```text
+bloodGroup: String
+haemoglobin: double
+weight: double
+lastDonationDate: String
+eligible: boolean
+```
 
-### Methods
+## Required donor functionality
 
-- `checkEligibility(): boolean`
-- `viewDonationHistory(): void`
+The donor's main operation is:
 
-### Requirements
+```text
+donate()
+```
 
-Donor eligibility must be calculated rather than blindly trusting the stored `eligible` flag.
+The donor profile must provide access to:
 
-At minimum validate:
+```text
+viewProfile()
+```
 
-- supported blood group;
-- valid age;
-- valid weight;
-- haemoglobin value;
-- previous donation date;
-- minimum donation interval;
-- absence of invalid/missing donor data.
+The profile itself should display:
 
-Use sensible configurable business rules rather than magic numbers scattered throughout the code.
+- Personal information.
+- Blood group.
+- Weight.
+- Haemoglobin.
+- Last donation date.
+- Eligibility/status information.
+- Donation history.
 
-The eligibility result must be shown clearly to the user.
+Therefore, a separate standalone:
 
-A donor must not be allowed to register a donation if they are currently ineligible.
+```text
+viewDonationHistory()
+```
 
----
+operation is **not required** in the updated design.
 
-# 6. Patient
+Similarly:
 
-`Patient` extends `Person`.
+```text
+checkEligibility()
+```
 
-### Private attributes
+is **not part of the donor-facing workflow**.
 
-- `bloodGroup: String`
-- `disease: String`
-- `doctorName: String`
-- `unitsRequired: int`
-- `hospitalId: String`
-
-### Method
-
-- `viewRequestStatus(): void`
-
-### Requirements
-
-- Patients belong to a hospital.
-- Blood group must be valid.
-- Units required must be positive.
-- Patient request status must be retrievable.
-- A patient may have multiple historical requests.
-- Patient information must not be exposed to unauthorized users.
+Eligibility is handled as part of the donation/laboratory process.
 
 ---
 
-# 7. Organization Hierarchy
+# 10. Donor Donation Workflow
 
-## 7.1 Organization
+The correct donation sequence is:
 
-Abstract class.
+```text
+DONOR
+  │
+  │ donate()
+  ▼
+Blood Collection
+  │
+  ▼
+Blood Unit Created
+  │
+  ▼
+Lab Testing
+  │
+  ├── FAIL → Reject/Discard
+  │
+  └── PASS
+       │
+       ▼
+BloodBankAdmin.registerDonation()
+       │
+       ▼
+Blood Bank Inventory
+```
 
-### Protected attributes
+## Detailed workflow
 
-- `organizationId: String`
-- `organizationName: String`
-- `address: String`
-- `contactNumber: String`
+### Step 1 — Donor initiates donation
 
-### Methods
+The donor logs in and chooses:
 
-- `displayOrganization(): void`
-- `updateOrganization(): void`
+```text
+Donate Blood
+```
 
-### Requirements
+This invokes:
 
-- Common organization information must be reusable by both `BloodBank` and `Hospital`.
-- Organization IDs must be unique.
-- Contact information must be validated.
-- Update operations must preserve identity.
-
----
-
-# 8. BloodBank
-
-Extends `Organization`.
-
-### Attributes
-
-- `managerName: String`
-- `inventory: Inventory`
-
-### Methods
-
-- `addBloodUnit(): void`
-- `removeBloodUnit(): void`
-- `transferBlood(): void`
-- `viewInventory(): void`
-
-### Requirements
-
-The blood bank is the central inventory facility.
-
-It must support:
-
-- adding valid blood units;
-- removing/issuing blood units;
-- transferring blood to hospitals;
-- inventory searching;
-- inventory display;
-- low-stock monitoring;
-- expiry monitoring;
-- maintaining accurate stock counts.
-
-Blood that has failed lab testing or has expired must never be issued.
+```text
+Donor.donate()
+```
 
 ---
 
-# 9. Hospital
+### Step 2 — Blood is collected
 
-Extends `Organization`.
+A donation transaction is created.
 
-### Attributes
+The system records:
 
-- `hospitalType: String`
-- `emergencyContact: String`
-- `inventory: Inventory`
-- `staffs: HospitalStaff[]`
-
-### Methods
-
-- `sendBloodRequest(): void`
-- `viewRequestHistory(): void`
-- `viewInventory(): void`
-
-### Requirements
-
-Hospitals must:
-
-- manage local inventory;
-- have one or more staff members;
-- submit blood requests;
-- submit emergency requests;
-- view request history;
-- view local stock;
-- receive approved blood transfers;
-- issue blood to patients.
-
-Hospital staff must be linked to their hospital.
+- Donor ID
+- Blood group
+- Quantity
+- Donation date
+- Transaction ID
 
 ---
 
-# 10. Inventory
+### Step 3 — Blood unit enters testing
 
-### Attributes
+The collected blood must **not immediately become usable blood-bank inventory**.
 
-- `bloodUnits: BloodUnit[]`
-- `totalStock: int`
-
-### Methods
-
-- `addBloodUnit(): void`
-- `removeBloodUnit(): void`
-- `searchBloodGroup(): BloodUnit[]`
-- `checkLowStock(): void`
-- `displayInventory(): void`
-
-### Requirements
-
-Inventory must be treated as a real domain component, not merely a list.
-
-It must:
-
-- maintain blood units;
-- maintain correct total stock;
-- support blood-group searches;
-- prevent negative stock;
-- prevent duplicate blood-unit IDs;
-- remove only available/valid units;
-- ignore expired/rejected units for usable-stock calculations;
-- support FIFO-style selection where appropriate;
-- report exact stock by blood group;
-- identify low-stock groups;
-- display unit-level information when requested.
-
-### Stock accounting
-
-For a blood group:
-
-`available stock = sum(quantity of usable BloodUnit records for that group)`
-
-Never rely solely on `totalStock` if it can be derived from unit records.
-
----
-
-# 11. BloodUnit
-
-### Attributes
-
-- `bloodUnitId: String`
-- `bloodGroup: String`
-- `quantity: int`
-- `collectionDate: String`
-- `expiryDate: String`
-- `status: String`
-
-### Methods
-
-- `runLabTests(): boolean`
-- `isExpired(): boolean`
-- `updateQuantity(): void`
-- `displayBloodUnit(): void`
-
-### Requirements
-
-Each blood unit must have:
-
-- unique ID;
-- valid blood group;
-- positive quantity;
-- collection date;
-- expiry date;
-- lifecycle status.
-
-Suggested statuses:
-
-- `COLLECTED`
-- `PENDING_TEST`
-- `TEST_PASSED`
-- `TEST_FAILED`
-- `AVAILABLE`
-- `RESERVED`
-- `ISSUED`
-- `TRANSFERRED`
-- `EXPIRED`
-- `DISCARDED`
-
-Do not hard-code status strings throughout the application. Use enums/constants where possible while preserving the diagram's public API.
-
-### Lab testing
-
-`runLabTests()` must perform a deterministic application-level validation/test workflow.
-
-The UI must clearly show:
-
-- test initiated;
-- test result;
-- reason/result status where appropriate;
-- whether the unit entered usable inventory.
-
-A failed unit must never enter available stock.
-
-### Expiry
-
-`isExpired()` must compare the expiry date with the current date.
-
-Expired units must automatically become unusable.
-
----
-
-# 12. Transaction Hierarchy
-
-## 12.1 Transaction
-
-Abstract class.
-
-### Protected attributes
-
-- `transactionId: String`
-- `transactionDate: String`
-- `status: String`
-
-### Method
-
-- `displayTransaction(): void`
-
-### Requirements
-
-Every donation, request, emergency request, and transfer must have:
-
-- unique transaction ID;
-- timestamp/date;
-- lifecycle status;
-- audit information.
-
----
-
-# 13. BloodDonation
-
-Extends `Transaction`.
-
-### Attributes
-
-- `donorId: String`
-- `bloodGroup: String`
-- `quantity: int`
-
-### Methods
-
-- `recordDonation(): void`
-- `updateInventory(): void`
-
-### Donation flow
-
-1. Authenticate donor/admin/staff as appropriate.
-2. Select donor.
-3. Check donor eligibility.
-4. Create donation transaction.
-5. Collect blood.
-6. Create one or more `BloodUnit` records.
-7. Mark units as pending testing.
-8. Run lab tests.
-9. Only passed units become available.
-10. Update inventory.
-11. Update donor's last donation date.
-12. Store donation history.
-13. Generate relevant alerts/reports.
-
-Do not add untested blood to usable inventory.
-
----
-
-# 14. BloodRequest
-
-Extends `Transaction`.
-
-### Attributes
-
-- `patientId: String`
-- `hospitalId: String`
-- `bloodGroup: String`
-- `unitsRequested: int`
-- `urgency: String`
-
-### Methods
-
-- `checkAvailability(): boolean`
-- `approveRequest(): void`
-- `rejectRequest(): void`
-
-### Request lifecycle
-
-Suggested statuses:
-
-- `PENDING`
-- `UNDER_REVIEW`
-- `APPROVED`
-- `REJECTED`
-- `PARTIALLY_FULFILLED`
-- `FULFILLED`
-- `CANCELLED`
-
-### Requirements
-
-Before approval:
-
-- patient must exist;
-- hospital must exist;
-- blood group must be valid;
-- units requested must be positive;
-- hospital must be authorized to request;
-- stock must be checked;
-- expired/rejected blood must not count.
-
----
-
-# 15. EmergencyRequest
-
-Extends `BloodRequest`.
-
-### Attributes
-
-- `urgencyLevel: String`
-- `levels: String[]`
-- `isEmergency: boolean`
-
-### Methods
-
-- `priorityDispatch(): void`
-- `overrideThreshold(): void`
-
-### Requirements
-
-Emergency requests must be prioritized over normal requests.
-
-Suggested priority levels:
-
-- `LOW`
-- `NORMAL`
-- `HIGH`
-- `CRITICAL`
-
-Emergency requests may use threshold overrides only according to clearly defined business rules.
-
-`overrideThreshold()` must be audited and must never create negative inventory.
-
-The UI should visibly distinguish emergency requests from standard requests.
-
----
-
-# 16. BloodTransfer
-
-Extends `Transaction`.
-
-### Attributes
-
-- `sourceFacilityId: String`
-- `destinationFacilityId: String`
-- `bloodGroup: String`
-- `unitsTransferred: int`
-
-### Methods
-
-- `transferUnits(): void`
-- `recordTransfer(): void`
-
-### Transfer flow
-
-1. Verify source facility.
-2. Verify destination hospital.
-3. Verify requested blood group.
-4. Verify approved request.
-5. Check usable source inventory.
-6. Reserve/select units.
-7. Deduct source inventory.
-8. Add units to destination inventory.
-9. Record transfer transaction.
-10. Update request status.
-11. Generate confirmation/audit record.
-
-Transfers must be atomic from the application's perspective: if the destination update fails, source inventory must not be permanently deducted.
-
----
-
-# 17. LoginManager
-
-### Attributes
-
-- `username: String`
-- `password: String`
-
-### Methods
-
-- `authenticateUser(): boolean`
-- `changePassword(): void`
-- `logoutUser(): void`
-
-## Authentication requirements
-
-Implement a real role-based authentication flow.
-
-Supported roles:
-
-- `DONOR`
-- `PATIENT`
-- `HOSPITAL_STAFF`
-- `BLOOD_BANK_ADMIN`
-
-If the implementation requires a system-level hospital/blood-bank account, support that through the same authorization model rather than a separate insecure mechanism.
-
-### Login screen
-
-The login flow must support:
-
-- username;
-- password;
-- authentication;
-- invalid credential handling;
-- role resolution;
-- session state;
-- logout;
-- password change.
-
-Never display stored passwords.
-
-Do not store plaintext passwords if a persistent credential store is implemented. Use password hashing.
-
-### Role authorization
-
-After login, users must only see and access operations allowed for their role.
+The unit is marked as awaiting laboratory testing.
 
 Example:
 
-| Role | Main capabilities |
-|---|---|
-| Donor | profile, eligibility, donation history |
-| Patient | profile, request status |
-| Hospital Staff | patient creation, requests, issuing, stock, restocking |
-| Blood Bank Admin | donations, lab testing, approvals, transfers, inventory, reports |
+```text
+Status = PENDING_TEST
+```
 
 ---
 
-# 18. AlertManager
+### Step 4 — Laboratory test
 
-### Attributes
+The blood-bank administrator initiates laboratory testing:
 
-- `lowStockThreshold: int`
-- `expiryAlertDays: int`
+```text
+BloodBankAdmin.initiateLabTest()
+```
 
-### Methods
+The result is:
 
-- `checkLowStock(): void`
-- `checkExpiry(): void`
-- `generateAlert(): void`
+```text
+PASS
+```
 
-### Requirements
+or
 
-Generate alerts for:
-
-1. Low stock by blood group.
-2. Blood units approaching expiry.
-3. Expired blood units.
-4. Failed lab tests where relevant.
-5. Critical/emergency request situations where appropriate.
-
-Thresholds must be configurable.
-
-Alerts should include:
-
-- type;
-- severity;
-- facility;
-- blood group/unit if applicable;
-- message;
-- date/time;
-- resolved/unresolved state where useful.
+```text
+FAIL
+```
 
 ---
 
-# 19. ReportGenerator
+### Step 5 — Failed test
 
-### Attributes
+If testing fails:
 
-- `reportTitle: String`
-- `generatedDate: String`
+```text
+Blood Unit
+    ↓
+TEST FAILED
+    ↓
+REJECTED / DISCARDED
+```
 
-### Methods
-
-- `generateInventoryReport(): void`
-- `generateDonationReport(): void`
-- `generateRequestReport(): void`
-- `exportReport(): void`
-
-### Reports
-
-Implement at least:
-
-### Inventory report
-
-Include:
-
-- blood group;
-- usable quantity;
-- expired quantity;
-- pending-test quantity;
-- low-stock status;
-- unit information when requested.
-
-### Donation report
-
-Include:
-
-- donation ID;
-- donor;
-- blood group;
-- quantity;
-- date;
-- test result;
-- final status.
-
-### Request report
-
-Include:
-
-- request ID;
-- patient;
-- hospital;
-- blood group;
-- quantity;
-- urgency;
-- status;
-- request date;
-- fulfillment information.
-
-### Export
-
-Support a practical export format such as CSV and/or TXT.
-
-Reports must be generated from current persisted application data.
+The blood must never enter usable inventory.
 
 ---
 
-# 20. FileManager
+### Step 6 — Passed test
 
-### Attribute
+If testing passes:
 
-- `filePath: String`
+```text
+Blood Unit
+    ↓
+TEST PASSED
+    ↓
+BloodBankAdmin.registerDonation()
+    ↓
+Blood Bank Inventory
+```
 
-### Methods
+Only after successful testing does:
 
-- `saveData(): void`
-- `loadData(): void`
-- `appendData(): void`
-- `deleteRecord(): void`
+```text
+registerDonation()
+```
 
-### Requirements
-
-Implement persistence.
-
-The application must not lose all data when it exits.
-
-At minimum persist:
-
-- users/accounts;
-- people;
-- staff;
-- hospitals;
-- blood banks;
-- donors;
-- patients;
-- blood units;
-- inventory;
-- donations;
-- requests;
-- emergency requests;
-- transfers;
-- alert/audit information.
-
-Use a clean persistence strategy appropriate for the project.
-
-If no database is required, JSON/CSV/serialized files may be used, but structure the persistence layer so it can later be replaced with a database.
-
-Do not scatter file-writing logic across domain classes.
+complete the registration of the usable donation.
 
 ---
 
-# 21. Validation
+# 11. Patient
 
-### Attribute
+`Patient` extends `Person`.
 
-- `bloodGroups: String[]`
+## Attributes
 
-### Methods
+```text
+bloodGroup: String
+disease: String
+doctorName: String
+unitsRequired: int
+hospitalId: String
+```
 
-- `validateBloodGroup(): boolean`
-- `validatePhoneNumber(): boolean`
-- `validateAge(): boolean`
-- `validateDate(): boolean`
+## Method
 
-### Requirements
+```text
+viewRequestStatus(): void
+```
 
-Centralize validation.
+Patients are created by hospital staff.
+
+Patients belong to exactly one hospital.
+
+---
+
+# 12. Patient Workflow
+
+A patient does not directly request blood from the blood bank.
+
+The workflow is:
+
+```text
+Hospital Staff
+      │
+      ▼
+Create Patient
+      │
+      ▼
+Patient requires blood
+      │
+      ▼
+Hospital creates BloodRequest
+      │
+      ▼
+Hospital Local Inventory
+      │
+      ├── Enough blood
+      │      ↓
+      │   Issue to Patient
+      │
+      └── Not enough
+             ↓
+       Request Blood Bank
+             ↓
+       Blood Transfer
+             ↓
+       Hospital Inventory
+             ↓
+       Issue to Patient
+```
+
+The patient login is primarily for viewing:
+
+- Profile
+- Request status
+- Request history
+- Relevant blood-request information
+
+---
+
+# 13. Organization
+
+`Organization` is an abstract class.
+
+## Attributes
+
+```text
+organizationId: String
+organizationName: String
+address: String
+contactNumber: String
+```
+
+## Methods
+
+```text
+displayOrganization(): void
+updateOrganization(): void
+```
+
+Two organizations extend it:
+
+```text
+Organization
+├── BloodBank
+└── Hospital
+```
+
+---
+
+# 14. BloodBank
+
+`BloodBank` extends `Organization`.
+
+## Attributes
+
+```text
+managerName: String
+inventory: Inventory
+```
+
+## Methods
+
+```text
+addBloodUnit(): void
+removeBloodUnit(): void
+transferBlood(): void
+viewInventory(): void
+```
+
+The blood bank maintains the **central blood inventory**.
+
+Its inventory is the primary source from which hospitals receive blood.
+
+---
+
+# 15. Hospital
+
+`Hospital` extends `Organization`.
+
+## Attributes
+
+```text
+hospitalType: String
+emergencyContact: String
+inventory: Inventory
+staffs: HospitalStaff[]
+```
+
+## Methods
+
+```text
+sendBloodRequest(): void
+viewRequestHistory(): void
+viewInventory(): void
+```
+
+Each hospital has its **own independent local blood inventory**.
+
+Example:
+
+```text
+Blood Bank
+├── O+ : 50
+├── A+ : 40
+└── B+ : 30
+
+Hospital A
+├── O+ : 5
+├── A+ : 2
+└── B+ : 4
+
+Hospital B
+├── O+ : 8
+├── A+ : 6
+└── B+ : 1
+```
+
+Hospital A cannot use Hospital B's inventory directly.
+
+If Hospital A needs additional blood, it requests it from the blood bank.
+
+---
+
+# 16. Inventory
+
+## Attributes
+
+```text
+bloodUnits: BloodUnit[]
+totalStock: int
+```
+
+## Methods
+
+```text
+addBloodUnit(): void
+removeBloodUnit(): void
+searchBloodGroup(): BloodUnit[]
+checkLowStock(): void
+displayInventory(): void
+```
+
+Inventory is used by both:
+
+```text
+BloodBank
+Hospital
+```
+
+Every inventory contains actual `BloodUnit` records.
+
+---
+
+# 17. BloodUnit
+
+## Attributes
+
+```text
+bloodUnitId: String
+bloodGroup: String
+quantity: int
+collectionDate: String
+expiryDate: String
+status: String
+```
+
+## Methods
+
+```text
+runLabTests(): boolean
+isExpired(): boolean
+displayBloodUnit(): void
+```
+
+Each blood unit must have a unique ID.
+
+Example:
+
+```text
+BU1001
+Blood Group: O+
+Quantity: 1
+Collection Date: 06-10-2026
+Expiry Date: ...
+Status: AVAILABLE
+```
+
+---
+
+# 18. Blood Unit Lifecycle
+
+A blood unit follows:
+
+```text
+COLLECTED
+    ↓
+PENDING_TEST
+    ↓
+LAB TEST
+   / \
+ FAIL PASS
+  ↓     ↓
+REJECTED TEST_PASSED
+          ↓
+       AVAILABLE
+          ↓
+      TRANSFERRED
+          ↓
+       HOSPITAL
+          ↓
+        ISSUED
+```
+
+Expired units become unusable.
+
+Possible statuses include:
+
+```text
+COLLECTED
+PENDING_TEST
+TEST_PASSED
+TEST_FAILED
+AVAILABLE
+TRANSFERRED
+ISSUED
+EXPIRED
+REJECTED
+```
+
+---
+
+# 19. Transaction
+
+`Transaction` is an abstract base class.
+
+## Attributes
+
+```text
+transactionId: String
+transactionDate: String
+status: String
+```
+
+## Method
+
+```text
+displayTransaction(): void
+```
+
+The transaction hierarchy is:
+
+```text
+Transaction
+├── BloodDonation
+├── BloodRequest
+└── BloodTransfer
+```
+
+Every transaction receives a unique transaction ID.
+
+---
+
+# 20. BloodDonation
+
+`BloodDonation` extends `Transaction`.
+
+## Attributes
+
+```text
+donorId: String
+bloodGroup: String
+quantity: int
+```
+
+## Methods
+
+```text
+recordDonation(): void
+updateInventory(): void
+```
+
+The donation transaction records the movement of blood from donor collection into the blood-bank processing workflow.
+
+Important:
+
+```text
+Donation ≠ immediately usable inventory
+```
+
+The blood must first pass laboratory testing.
+
+---
+
+# 21. Blood Request
+
+`BloodRequest` extends `Transaction`.
+
+## Attributes
+
+```text
+patientId: String
+hospitalId: String
+bloodGroup: String
+unitsRequested: int
+urgency: String
+```
+
+## Methods
+
+```text
+checkAvailability(): boolean
+approveRequest(): void
+rejectRequest(): void
+priorityDispatch(): void
+```
+
+A request is created by hospital staff for a patient.
+
+---
+
+# 22. Blood Request Priority
+
+Priority belongs to the **BloodRequest**, not permanently to the patient.
+
+The request contains:
+
+```text
+urgency: String
+```
+
+The system uses a priority `HashMap`.
+
+Example:
+
+```java
+HashMap<String, Integer> priorityMap;
+```
+
+with:
+
+```text
+CRITICAL → 1
+HIGH     → 2
+MEDIUM   → 3
+LOW      → 4
+```
+
+Lower numerical value means higher priority.
+
+The hospital staff determines the urgency of the request based on the patient's requirement.
+
+The system then uses the priority when processing pending requests.
+
+---
+
+# 23. Hospital Blood Request Workflow
+
+## Step 1 — Patient is created
+
+Hospital staff creates the patient.
+
+Example:
+
+```text
+Patient ID: P1001
+Blood Group: O+
+Disease: Severe blood loss
+Doctor: Dr. Kumar
+Units Required: 4
+Hospital: H001
+```
+
+---
+
+## Step 2 — Hospital creates request
+
+Hospital staff creates:
+
+```text
+BloodRequest
+```
+
+with:
+
+```text
+Patient ID
+Hospital ID
+Blood Group
+Units Required
+Urgency
+```
+
+---
+
+## Step 3 — Check local hospital inventory
+
+The system first checks the hospital's own inventory.
+
+Example:
+
+```text
+Required = 4 O+
+Hospital stock = 6 O+
+```
+
+Result:
+
+```text
+AVAILABLE
+```
+
+No blood-bank transfer is required.
+
+---
+
+# 24. Local Stock Sufficient
+
+If:
+
+```text
+Required = 4
+Available = 6
+```
+
+then:
+
+```text
+Hospital Inventory
+6 → 2
+```
+
+The hospital can issue blood directly to the patient.
+
+Flow:
+
+```text
+Patient Request
+      ↓
+Hospital Inventory
+      ↓
+Issue Blood
+      ↓
+Patient
+```
+
+The blood bank is not involved.
+
+---
+
+# 25. Local Stock Insufficient
+
+Example:
+
+```text
+Patient requires = 5 O+
+Hospital has = 2 O+
+```
+
+The system determines:
+
+```text
+Shortage = 5 - 2
+        = 3 units
+```
+
+The hospital requests:
+
+```text
+3 O+
+```
+
+from the blood bank.
+
+Flow:
+
+```text
+Patient
+   ↓
+Hospital Request
+   ↓
+Check Local Stock
+   ↓
+2 available / 3 shortage
+   ↓
+Blood Bank Request
+   ↓
+Blood Bank
+   ↓
+Transfer 3 units
+   ↓
+Hospital Inventory
+   ↓
+Issue 5 units to patient
+```
+
+The blood bank does **not** directly issue the blood to the patient.
+
+---
+
+# 26. Partial Availability
+
+If the hospital has some of the required blood, the system can use the available local stock and request the shortage.
+
+Example:
+
+```text
+Required = 5
+Hospital = 2
+Shortage = 3
+```
+
+The hospital can:
+
+```text
+Use 2 local units
++
+Request 3 from Blood Bank
+```
+
+This prevents unnecessary transfers of blood that is already available locally.
+
+---
+
+# 27. Blood Transfer
+
+`BloodTransfer` extends `Transaction`.
+
+## Attributes
+
+```text
+sourceFacilityId: String
+destinationFacilityId: String
+bloodGroup: String
+unitsTransferred: int
+```
+
+## Methods
+
+```text
+transferUnits(): void
+recordTransfer(): void
+```
+
+The normal transfer direction is:
+
+```text
+Blood Bank
+     ↓
+Hospital
+```
+
+The transfer must record:
+
+- Source facility
+- Destination facility
+- Blood group
+- Quantity
+- Transaction ID
+- Date
+- Status
+
+---
+
+# 28. Blood Transfer Workflow
+
+```text
+Hospital detects shortage
+          ↓
+Creates blood request
+          ↓
+Blood Bank receives request
+          ↓
+Admin checks central inventory
+          ↓
+Approve / Reject
+          ↓
+Select valid blood units
+          ↓
+Dispatch transfer
+          ↓
+Blood Bank inventory decreases
+          ↓
+Hospital inventory increases
+          ↓
+Transfer recorded
+          ↓
+Hospital can issue blood
+```
+
+Only usable blood can be transferred.
+
+Expired or failed units must never be transferred.
+
+---
+
+# 29. Blood Bank Request Approval
+
+When a hospital requests blood from the blood bank:
+
+```text
+REQUEST
+   ↓
+PENDING
+   ↓
+BloodBankAdmin reviews
+   ↓
+ ┌─────────────┐
+ │             │
+APPROVE       REJECT
+ │             │
+ ▼             ▼
+TRANSFER      END
+```
+
+The administrator checks:
+
+- Hospital validity
+- Patient validity
+- Blood group
+- Required quantity
+- Request urgency
+- Central inventory availability
+- Blood-unit validity
+
+---
+
+# 30. Issue Blood to Patient
+
+Blood is issued **from the hospital inventory**.
+
+Workflow:
+
+```text
+Hospital Staff
+      ↓
+Select Patient
+      ↓
+Select Blood Request
+      ↓
+Check Request
+      ↓
+Check Hospital Inventory
+      ↓
+Check Blood Unit Status
+      ↓
+Check Expiry
+      ↓
+Issue Blood
+      ↓
+Update Inventory
+      ↓
+Update Request Status
+```
+
+Once issued:
+
+```text
+BloodUnit.status = ISSUED
+```
+
+The inventory quantity is reduced.
+
+---
+
+# 31. Complete End-to-End Example
+
+Suppose:
+
+```text
+Patient needs 5 O+
+Hospital has 2 O+
+Blood Bank has 20 O+
+```
+
+### Step 1
+
+Hospital creates patient.
+
+### Step 2
+
+Hospital creates:
+
+```text
+BloodRequest
+O+
+5 units
+HIGH urgency
+```
+
+### Step 3
+
+Hospital checks local inventory:
+
+```text
+2 available
+```
+
+### Step 4
+
+Shortage:
+
+```text
+5 - 2 = 3
+```
+
+### Step 5
+
+Hospital requests 3 units from blood bank.
+
+### Step 6
+
+Blood-bank admin approves.
+
+### Step 7
+
+Blood bank transfers 3 units.
+
+```text
+Blood Bank: 20 → 17
+Hospital:   2 → 5
+```
+
+### Step 8
+
+Hospital issues 5 units to patient.
+
+```text
+Hospital: 5 → 0
+```
+
+### Step 9
+
+Request becomes:
+
+```text
+FULFILLED
+```
+
+All transactions are stored.
+
+---
+
+# 32. LoginManager
+
+## Attributes
+
+```text
+username: String
+password: String
+```
+
+## Methods
+
+```text
+authenticateUser(): boolean
+changePassword(): void
+logoutUser(): void
+```
+
+Supported roles:
+
+```text
+DONOR
+PATIENT
+HOSPITAL
+BLOOD_BANK
+```
+
+Internally:
+
+```text
+HOSPITAL → HospitalStaff
+BLOOD_BANK → BloodBankAdmin
+```
+
+---
+
+# 33. Authentication Flow
+
+```text
+START
+  ↓
+LOGIN
+  ↓
+Enter username/password
+  ↓
+Authenticate
+  ↓
+ ┌───────────────┐
+ │               │
+SUCCESS         FAILURE
+ │               │
+ ▼               ▼
+Role Menu      Error
+```
+
+After login, the system must only expose functions allowed for that role.
+
+---
+
+# 34. Donor Menu
+
+The donor dashboard should contain:
+
+```text
+1. View Profile
+2. Update Profile
+3. Donate Blood
+4. Change Password
+5. Logout
+```
+
+The profile displays donation history as part of the donor's information.
+
+There is no need for a separate:
+
+```text
+Check Eligibility
+```
+
+menu operation.
+
+---
+
+# 35. Patient Menu
+
+```text
+1. View Profile
+2. Update Profile
+3. View Request Status
+4. View Request History
+5. Change Password
+6. Logout
+```
+
+Patients cannot:
+
+- create blood requests;
+- modify hospital inventory;
+- approve requests;
+- transfer blood.
+
+---
+
+# 36. Hospital Menu
+
+```text
+1. Create Patient
+2. View Patients
+3. Create Blood Request
+4. Create Emergency/Urgent Request
+5. Check Local Inventory
+6. View Inventory
+7. Issue Blood
+8. Request Blood from Blood Bank
+9. View Request History
+10. View Transfer History
+11. Change Password
+12. Logout
+```
+
+Hospital staff can only access their own hospital's inventory.
+
+---
+
+# 37. Blood Bank Menu
+
+```text
+1. View Pending Donations
+2. Initiate Lab Test
+3. Register Approved Donation
+4. View Blood Bank Inventory
+5. View Hospital Requests
+6. Approve Request
+7. Reject Request
+8. Dispatch Blood Transfer
+9. View Transfer History
+10. View Alerts
+11. Generate Reports
+12. Change Password
+13. Logout
+```
+
+---
+
+# 38. AlertManager
+
+## Attributes
+
+```text
+lowStockThreshold: int
+expiryAlertDays: int
+```
+
+## Methods
+
+```text
+checkLowStock(): void
+checkExpiry(): void
+generateAlert(): void
+```
+
+The system should generate alerts for:
+
+### Low stock
+
+Example:
+
+```text
+WARNING:
+O+ blood stock at Hospital H001 is below threshold.
+```
+
+### Expiry
+
+Example:
+
+```text
+WARNING:
+Blood Unit BU1005 expires soon.
+```
+
+### Expired blood
+
+Expired blood must immediately become unavailable for issue/transfer.
+
+---
+
+# 39. ReportGenerator
+
+## Attributes
+
+```text
+reportTitle: String
+generatedDate: String
+```
+
+## Methods
+
+```text
+generateInventoryReport(): void
+generateDonationReport(): void
+generateRequestReport(): void
+exportReport(): void
+```
+
+### Inventory Report
+
+Contains:
+
+- Facility
+- Blood group
+- Available quantity
+- Blood-unit IDs
+- Expiry information
+- Low-stock status
+
+### Donation Report
+
+Contains:
+
+- Donation ID
+- Donor ID
+- Blood group
+- Quantity
+- Date
+- Lab result
+- Registration status
+
+### Request Report
+
+Contains:
+
+- Request ID
+- Patient ID
+- Hospital ID
+- Blood group
+- Units requested
+- Urgency
+- Status
+- Date
+
+Reports can be exported using a suitable file format such as CSV/TXT.
+
+---
+
+# 40. FileManager
+
+## Attributes
+
+```text
+filePath: String
+```
+
+## Methods
+
+```text
+saveData(): void
+loadData(): void
+appendData(): void
+deleteRecord(): void
+```
+
+The application must persist data between executions.
+
+Data that should be persisted includes:
+
+- Users
+- Donors
+- Patients
+- Staff
+- Hospitals
+- Blood banks
+- Blood units
+- Inventories
+- Donations
+- Requests
+- Transfers
+- Relevant history
+
+The file-handling logic should remain centralized inside `FileManager`.
+
+---
+
+# 41. Validation
+
+## Attributes
+
+```text
+bloodGroups: String[]
+```
+
+## Methods
+
+```text
+validateBloodGroup(): boolean
+validatePhoneNumber(): boolean
+validateAge(): boolean
+validateDate(): boolean
+```
 
 Supported blood groups:
 
-- `A+`
-- `A-`
-- `B+`
-- `B-`
-- `AB+`
-- `AB-`
-- `O+`
-- `O-`
+```text
+A+
+A-
+B+
+B-
+AB+
+AB-
+O+
+O-
+```
 
-Validate:
+Validation must prevent:
 
-- blood groups;
-- phone numbers;
-- age;
-- dates;
-- positive quantities;
-- IDs;
-- required strings;
-- expiry dates after collection dates;
-- valid staff/facility references.
-
-All invalid user input must produce a useful error message and allow correction instead of crashing the application.
-
----
-
-# 22. Menu
-
-### Attribute
-
-- `choice: Integer`
-
-### Methods
-
-- `displayMainMenu(): void`
-- `staffMenu(): void`
-- `donorMenu(): void`
-- `patientMenu(): void`
-- `hospitalMenu(): void`
-
-### Requirements
-
-Build a complete navigable console UI.
-
-## Main menu
-
-Provide:
-
-1. Login
-2. Register user/account where appropriate
-3. Exit
-
-## Donor menu
-
-Provide:
-
-1. View profile
-2. Update profile
-3. Check eligibility
-4. View donation history
-5. Change password
-6. Logout
-
-## Patient menu
-
-Provide:
-
-1. View profile
-2. Update profile
-3. View request status/history
-4. Change password
-5. Logout
-
-## Hospital staff menu
-
-Provide:
-
-1. Create patient
-2. Create blood request
-3. Create emergency blood request
-4. Check local stock
-5. Issue blood
-6. Request restock
-7. View request history
-8. View hospital inventory
-9. Change password
-10. Logout
-
-## Blood-bank admin menu
-
-Provide:
-
-1. Register donation
-2. Initiate lab test
-3. View pending tests
-4. Approve request
-5. Reject request
-6. Dispatch transfer
-7. View blood-bank inventory
-8. Add/remove blood unit
-9. View alerts
-10. Generate inventory report
-11. Generate donation report
-12. Generate request report
-13. Manage facilities/users where applicable
-14. Change password
-15. Logout
-
-The menu must never expose unauthorized operations.
+- Invalid blood groups
+- Invalid phone numbers
+- Invalid ages
+- Invalid dates
+- Negative quantities
+- Empty mandatory fields
+- Invalid IDs
+- Invalid facility references
 
 ---
 
-# 23. Main
+# 42. Data Relationships
 
-### Methods
+## Inheritance
 
-- `main(args: String[]): void`
-- `initializeSystem(): void`
-- `closeApplication(): void`
+```text
+Person
+├── Staff
+│    ├── HospitalStaff
+│    └── BloodBankAdmin
+├── Donor
+└── Patient
+```
 
-### Requirements
+```text
+Organization
+├── BloodBank
+└── Hospital
+```
 
-`Main` must:
+```text
+Transaction
+├── BloodDonation
+├── BloodRequest
+└── BloodTransfer
+```
 
-1. Initialize configuration.
-2. Load persisted data.
-3. Initialize services/managers.
-4. Ensure required default facilities/admin account exist.
-5. Launch the main menu.
-6. Handle the application lifecycle.
-7. Save data safely before exit.
-8. Close resources cleanly.
+## Composition / Association
 
-The application must start with a single standard command.
+```text
+BloodBank
+    └── Inventory
+          └── BloodUnit[]
 
----
+Hospital
+    ├── Inventory
+    │     └── BloodUnit[]
+    │
+    └── HospitalStaff[]
+```
 
-# 24. Complete Business Workflows
+```text
+BloodDonation
+    └── Donor
 
-## Workflow A — Donor registration and donation
+BloodRequest
+    ├── Patient
+    └── Hospital
 
-1. User logs in as donor or authorized staff/admin.
-2. Donor profile is displayed.
-3. Eligibility is checked.
-4. If ineligible, donation stops with the reason.
-5. If eligible, donation is registered.
-6. Blood units are created.
-7. Units enter `PENDING_TEST`.
-8. Admin initiates lab testing.
-9. Test passes → unit becomes usable.
-10. Test fails → unit becomes rejected/discarded.
-11. Inventory is updated.
-12. Donor history is updated.
-13. Donation transaction is stored.
-
----
-
-## Workflow B — Patient requests blood
-
-1. Hospital staff logs in.
-2. Staff selects/creates patient.
-3. Staff selects blood group.
-4. Staff enters required units.
-5. Staff chooses normal/emergency request.
-6. System validates all information.
-7. Availability is checked.
-8. Request is stored as pending.
-9. Admin reviews request.
-10. Admin approves/rejects.
-11. Approved request becomes eligible for fulfillment.
-12. Transfer/issue occurs.
-13. Request status is updated.
-14. Patient can view request status.
+BloodTransfer
+    ├── Source Facility
+    └── Destination Facility
+```
 
 ---
 
-## Workflow C — Hospital receives blood
+# 43. Complete Business Workflows
 
-1. Hospital submits request.
-2. Admin approves request.
-3. Blood bank selects valid units.
-4. Transfer transaction is created.
-5. Source inventory decreases.
-6. Destination inventory increases.
-7. Transfer is recorded.
-8. Request status changes appropriately.
-9. Hospital can see received stock.
+## Workflow A — Donation
 
----
-
-## Workflow D — Hospital issues blood to patient
-
-1. Hospital staff logs in.
-2. Staff selects patient.
-3. Staff selects approved request.
-4. System verifies remaining required units.
-5. System verifies local inventory.
-6. System verifies blood unit status/expiry.
-7. Blood is issued.
-8. Inventory decreases.
-9. Request is updated.
-10. Transaction/audit record is stored.
-
----
-
-## Workflow E — Restock
-
-1. Hospital staff checks local stock.
-2. Low stock is detected.
-3. Staff creates restock request.
-4. Blood bank receives request.
-5. Admin checks availability.
-6. Admin approves/fulfills.
-7. Blood transfer is dispatched.
-8. Hospital inventory increases.
-9. Blood bank inventory decreases.
-10. Transfer and request history are updated.
+```text
+Donor Login
+    ↓
+View Profile
+    ↓
+Donate
+    ↓
+Blood Collected
+    ↓
+Blood Unit Created
+    ↓
+Pending Lab Test
+    ↓
+Blood Bank Admin Initiates Test
+    ↓
+ ┌───────────────┐
+ │               │
+ FAIL           PASS
+ │               │
+ ▼               ▼
+Reject       Register Donation
+                 ↓
+            Add to Inventory
+```
 
 ---
 
-## Workflow F — Emergency request
+## Workflow B — Patient Blood Request
 
-1. Hospital staff creates emergency request.
-2. Emergency request is marked `isEmergency = true`.
-3. Urgency level is assigned.
-4. Request receives higher priority.
-5. Admin sees emergency request at the top of the queue.
-6. Threshold/availability rules are evaluated.
-7. If allowed, priority dispatch occurs.
-8. Transfer is recorded.
-9. All overrides are audited.
+```text
+Hospital Login
+     ↓
+Create Patient
+     ↓
+Patient Requires Blood
+     ↓
+Create Blood Request
+     ↓
+Assign Urgency
+     ↓
+Check Local Inventory
+     ↓
+ ┌──────────────────────┐
+ │                      │
+SUFFICIENT           INSUFFICIENT
+ │                      │
+ ▼                      ▼
+Issue Locally       Request Blood Bank
+                        ↓
+                  Admin Approval
+                        ↓
+                     Transfer
+                        ↓
+                 Hospital Inventory
+                        ↓
+                   Issue to Patient
+```
 
 ---
 
-# 25. Authentication and Access Control
+## Workflow C — Blood Transfer
 
-Implement authorization centrally.
-
-Do not rely only on hiding menu options.
-
-Every sensitive service operation should verify authorization.
-
-Examples:
-
-- A donor cannot approve a blood request.
-- A patient cannot modify hospital inventory.
-- Hospital staff cannot perform blood-bank administrative actions.
-- Only authorized staff can issue blood.
-- Only authorized admins can approve/dispatch transfers.
-- Users can only update their own profile unless they have administrative permission.
+```text
+Hospital Request
+       ↓
+Blood Bank Admin
+       ↓
+Check Central Stock
+       ↓
+Approve
+       ↓
+Select Blood Units
+       ↓
+Transfer
+       ↓
+Blood Bank Stock -
+       ↓
+Hospital Stock +
+       ↓
+Record Transaction
+```
 
 ---
 
-# 26. Data Relationships
+## Workflow D — Patient Issue
 
-Implement the relationships implied by the class diagram:
+```text
+Approved Request
+       ↓
+Hospital Staff
+       ↓
+Check Local Stock
+       ↓
+Check Blood Unit
+       ↓
+Check Expiry
+       ↓
+Issue Blood
+       ↓
+Hospital Inventory -
+       ↓
+Request Updated
+       ↓
+Patient Receives Blood
+```
+
+---
+
+# 44. Priority-Based Dispatch
+
+Pending requests are maintained according to urgency.
+
+Example:
+
+```text
+HashMap<String, Integer>
+
+CRITICAL → 1
+HIGH     → 2
+MEDIUM   → 3
+LOW      → 4
+```
+
+If the blood bank receives:
+
+```text
+Request A → LOW
+Request B → CRITICAL
+Request C → HIGH
+```
+
+the processing order should be:
+
+```text
+B → C → A
+```
+
+Priority must not bypass basic validity checks.
+
+A request still requires valid:
+
+- Patient
+- Hospital
+- Blood group
+- Quantity
+- Blood availability
+
+---
+
+# 45. Inventory Rules
+
+The system must always maintain correct inventory.
+
+### Rule 1
+
+Inventory cannot become negative.
+
+### Rule 2
+
+Rejected blood cannot be used.
+
+### Rule 3
+
+Expired blood cannot be used.
+
+### Rule 4
+
+Untested blood cannot be used.
+
+### Rule 5
+
+Blood transferred from the blood bank must be removed from blood-bank usable stock.
+
+### Rule 6
+
+Transferred blood must be added to the destination hospital.
+
+### Rule 7
+
+Blood issued to a patient must be removed from hospital stock.
+
+---
+
+# 46. Error Handling
+
+The application must handle:
+
+- Invalid login
+- Wrong password
+- Duplicate IDs
+- Invalid blood group
+- Invalid age
+- Invalid phone number
+- Invalid date
+- Invalid quantity
+- Missing patient
+- Missing hospital
+- Missing donor
+- Missing blood bank
+- Insufficient stock
+- Expired blood
+- Failed laboratory test
+- Unauthorized operation
+- Invalid menu choice
+- File loading errors
+- File saving errors
+- Report generation errors
+
+Normal user errors must never crash the application.
+
+---
+
+# 47. Object-Oriented Requirements
+
+The implementation must clearly demonstrate:
+
+### Abstraction
+
+Use:
+
+```text
+abstract Person
+abstract Staff
+abstract Organization
+abstract Transaction
+```
 
 ### Inheritance
 
-- `Staff` → `Person`
-- `Donor` → `Person`
-- `Patient` → `Person`
-- `HospitalStaff` → `Staff`
-- `BloodBankAdmin` → `Staff`
-- `BloodBank` → `Organization`
-- `Hospital` → `Organization`
-- `BloodDonation` → `Transaction`
-- `BloodRequest` → `Transaction`
-- `EmergencyRequest` → `BloodRequest`
-- `BloodTransfer` → `Transaction`
+Use the inheritance relationships represented in the class diagram.
 
-### Composition/association
+### Encapsulation
 
-- `BloodBank` owns/uses an `Inventory`.
-- `Hospital` owns/uses an `Inventory`.
-- `Hospital` has `HospitalStaff[]`.
-- `Inventory` contains `BloodUnit[]`.
-- `BloodDonation` creates/updates `BloodUnit` records.
-- `BloodRequest` references a `Patient` and `Hospital`.
-- `BloodTransfer` references source and destination facilities.
-- `AlertManager` observes inventory and expiry conditions.
-- `ReportGenerator` reads application/domain data.
-- `FileManager` persists application state.
-- `LoginManager` manages authentication/session state.
+Keep attributes private/protected as appropriate and expose controlled operations.
 
-Do not duplicate the same object unnecessarily when a shared reference/ID relationship is more appropriate.
+### Polymorphism
+
+Use parent references where appropriate:
+
+```java
+Person person;
+Staff staff;
+Transaction transaction;
+Organization organization;
+```
+
+### Composition
+
+For example:
+
+```text
+Hospital → Inventory
+BloodBank → Inventory
+Inventory → BloodUnit[]
+```
 
 ---
 
-# 27. Suggested Architecture
-
-Use a clean layered structure.
+# 48. Suggested Java Project Structure
 
 ```text
 src/
+│
 ├── model/
 │   ├── Person.java
 │   ├── Staff.java
@@ -1164,26 +1931,23 @@ src/
 │   ├── Donor.java
 │   ├── Patient.java
 │   ├── Organization.java
-│   ├── BloodBank.java
 │   ├── Hospital.java
+│   ├── BloodBank.java
 │   ├── Inventory.java
 │   ├── BloodUnit.java
 │   ├── Transaction.java
 │   ├── BloodDonation.java
 │   ├── BloodRequest.java
-│   ├── EmergencyRequest.java
 │   └── BloodTransfer.java
 │
-├── service/
+├── manager/
 │   ├── LoginManager.java
 │   ├── AlertManager.java
-│   ├── ReportGenerator.java
-│   └── ...
+│   └── ReportGenerator.java
 │
-├── util/
+├── utility/
 │   ├── Validation.java
-│   ├── FileManager.java
-│   └── ...
+│   └── FileManager.java
 │
 ├── ui/
 │   └── Menu.java
@@ -1191,367 +1955,360 @@ src/
 └── Main.java
 ```
 
-The exact package structure may vary, but responsibilities must remain separated.
+The exact package structure may change, but responsibilities should remain separated.
 
 ---
 
-# 28. Object-Oriented Requirements
+# 49. Main Application Flow
 
-The implementation must visibly demonstrate the OOP concepts represented by the diagram.
+`Main` contains:
 
-Use:
+```text
+main(args)
+initializeSystem()
+closeApplication()
+```
 
-- abstraction;
-- inheritance;
-- encapsulation;
-- polymorphism;
-- composition;
-- association;
-- method overriding;
-- constructors;
-- access modifiers;
-- collections;
-- enums where useful.
+Startup:
 
-Avoid:
+```text
+Application Start
+       ↓
+Initialize System
+       ↓
+Load Saved Data
+       ↓
+Initialize Blood Banks
+       ↓
+Initialize Hospitals
+       ↓
+Initialize Users
+       ↓
+Display Main Menu
+```
 
-- one giant `Main` class;
-- all business logic inside `Menu`;
-- static global state for everything;
-- duplicated validation;
-- duplicated inventory logic;
-- hard-coded fake responses;
-- methods that merely print "success" without changing application state.
+Shutdown:
 
----
-
-# 29. Error Handling
-
-Handle at least:
-
-- invalid login;
-- duplicate username;
-- duplicate IDs;
-- invalid blood group;
-- invalid age;
-- invalid phone number;
-- invalid date;
-- invalid quantity;
-- missing patient;
-- missing donor;
-- missing hospital;
-- missing blood bank;
-- unavailable stock;
-- expired blood;
-- rejected blood;
-- failed lab test;
-- unauthorized action;
-- malformed persistence file;
-- missing persistence file;
-- failed report export;
-- invalid menu choice.
-
-The application must not terminate unexpectedly because of normal user input errors.
+```text
+Logout
+  ↓
+Close Application
+  ↓
+Save Data
+  ↓
+Close Files
+  ↓
+Exit
+```
 
 ---
 
-# 30. Persistence Requirements
+# 50. Main Menu
 
-On startup:
+```text
+================================
+     BLOOD BANK MANAGEMENT
+================================
+
+1. Login
+2. Exit
+
+Enter choice:
+```
+
+After authentication, the system redirects the user according to role.
+
+---
+
+# 51. Security and Authorization
+
+Authentication alone is not sufficient.
+
+The application must also verify authorization.
+
+Examples:
+
+```text
+DONOR
+  ✗ Cannot approve blood requests
+
+PATIENT
+  ✗ Cannot modify inventory
+
+HOSPITAL
+  ✗ Cannot dispatch blood-bank transfers
+
+BLOOD BANK
+  ✓ Can approve and dispatch transfers
+```
+
+A hospital staff member can only access the hospital associated with their account.
+
+A blood-bank admin can only perform administrative operations permitted by their role/admin level.
+
+---
+
+# 52. Persistence
+
+The system must retain data after application shutdown.
+
+At minimum:
+
+```text
+Users
+People
+Donors
+Patients
+Staff
+Hospitals
+Blood Banks
+Blood Units
+Inventories
+Donations
+Requests
+Transfers
+```
+
+Startup:
 
 ```text
 initializeSystem()
-    ↓
-load persisted users
-    ↓
-load organizations
-    ↓
-load people
-    ↓
-load blood units/inventory
-    ↓
-load transactions
-    ↓
-load alerts/audit data
-    ↓
-launch Menu
+      ↓
+FileManager.loadData()
+      ↓
+Restore objects
+      ↓
+Start application
 ```
 
-On exit:
+Shutdown:
 
 ```text
 closeApplication()
-    ↓
-validate pending state
-    ↓
-save all persistent state
-    ↓
-close files/resources
-    ↓
-terminate
+      ↓
+FileManager.saveData()
+      ↓
+Exit
 ```
 
-Use atomic/defensive saving where practical so a failed save does not corrupt the entire dataset.
+---
+
+# 53. Testing Requirements
+
+Important functionality must be tested.
+
+## Donor tests
+
+- Donor creation
+- Profile display
+- Donation creation
+- Donation history
+- Lab testing
+- Failed donation
+- Successful donation
+
+## Inventory tests
+
+- Add blood
+- Remove blood
+- Search blood group
+- Insufficient stock
+- Expiry
+- Low stock
+
+## Hospital tests
+
+- Patient creation
+- Blood request
+- Local stock checking
+- Blood issuing
+- Blood-bank restocking
+
+## Blood-bank tests
+
+- Donation registration
+- Lab testing
+- Request approval
+- Request rejection
+- Transfer
+
+## Authentication tests
+
+- Valid login
+- Invalid login
+- Role authorization
+- Password change
+- Logout
 
 ---
 
-# 31. Seed Data
+# 54. Acceptance Criteria
 
-For first launch, create useful demo data so the application is immediately testable.
+The project is considered complete when:
 
-Include:
-
-- at least one blood bank;
-- at least two hospitals;
-- at least one admin;
-- at least one hospital staff member per hospital;
-- at least one donor;
-- at least one patient;
-- representative blood units across several blood groups;
-- example requests;
-- example completed transaction history.
-
-Clearly document the demo credentials in the README.
-
-Do not hard-code production credentials.
-
----
-
-# 32. UI/UX Requirements
-
-The application is primarily a functional Java application.
-
-Keep the interface clean and understandable.
-
-Every screen should show:
-
-- current role;
-- current user/facility where relevant;
-- clear menu options;
-- success/error messages;
-- confirmation before destructive actions;
-- useful empty states.
-
-Use formatted tables where helpful for:
-
-- inventory;
-- requests;
-- donation history;
-- transfer history;
-- alerts;
-- reports.
-
----
-
-# 33. Testing Requirements
-
-Create tests for all critical business logic.
-
-### Unit tests
-
-At minimum test:
-
-- `Validation`
-- donor eligibility;
-- blood-unit expiry;
-- inventory addition/removal;
-- inventory search;
-- low-stock detection;
-- donation registration;
-- lab-test pass/fail;
-- request availability;
-- request approval/rejection;
-- emergency priority;
-- blood transfer;
-- issue-to-patient flow;
-- authentication;
-- authorization;
-- persistence;
-- report generation.
-
-### Integration tests
-
-Test complete workflows:
-
-1. donor → donation → test → inventory;
-2. patient → request → approval → transfer;
-3. hospital → request → transfer → issue;
-4. emergency request → priority dispatch;
-5. application restart → persisted state restored.
-
----
-
-# 34. Acceptance Criteria
-
-The project is complete only when all of the following are true:
-
-- [ ] Every class in the supplied diagram exists.
-- [ ] Every diagram attribute is represented.
-- [ ] Every diagram method is implemented.
-- [ ] Inheritance relationships are implemented.
-- [ ] Authentication works.
+- [ ] All classes from the updated class diagram exist.
+- [ ] All diagram attributes are implemented.
+- [ ] All diagram methods are implemented.
+- [ ] Correct inheritance is implemented.
+- [ ] Donor can log in.
+- [ ] Donor can view profile.
+- [ ] Donation history appears through the profile.
+- [ ] Donor can initiate donation.
+- [ ] Blood undergoes laboratory testing.
+- [ ] Failed blood cannot enter usable inventory.
+- [ ] Successful blood can be registered by the blood-bank admin.
+- [ ] Blood bank maintains central inventory.
+- [ ] Each hospital has separate local inventory.
+- [ ] Hospital can create patients.
+- [ ] Hospital can create blood requests.
+- [ ] Requests have urgency/priority.
+- [ ] Hospital checks local inventory first.
+- [ ] Shortage can be requested from blood bank.
+- [ ] Blood bank can approve/reject requests.
+- [ ] Blood bank can transfer blood.
+- [ ] Hospital receives transferred blood.
+- [ ] Hospital can issue blood to patients.
+- [ ] Blood inventory updates correctly.
+- [ ] Expired blood cannot be issued.
+- [ ] Low-stock alerts work.
+- [ ] Expiry alerts work.
+- [ ] Reports can be generated.
+- [ ] Data persists after restart.
 - [ ] Role-based authorization works.
-- [ ] Donor workflow works end-to-end.
-- [ ] Patient workflow works end-to-end.
-- [ ] Hospital staff workflow works end-to-end.
-- [ ] Blood-bank admin workflow works end-to-end.
-- [ ] Blood donation workflow works.
-- [ ] Lab testing works.
-- [ ] Inventory is accurately maintained.
-- [ ] Expiry detection works.
-- [ ] Low-stock detection works.
-- [ ] Normal blood requests work.
-- [ ] Emergency requests work.
-- [ ] Approval/rejection works.
-- [ ] Blood transfers work.
-- [ ] Hospital issuing works.
-- [ ] Restocking works.
-- [ ] Alerts work.
-- [ ] Reports work.
-- [ ] Report export works.
-- [ ] File persistence works.
-- [ ] Validation works.
-- [ ] Invalid input does not crash the application.
-- [ ] Logout works.
-- [ ] Password changes work.
-- [ ] Data survives application restart.
-- [ ] Tests cover critical workflows.
-- [ ] README explains setup, execution, architecture, credentials, and workflows.
+- [ ] Invalid input does not crash the program.
+- [ ] Complete workflows work end-to-end.
 
 ---
 
-# 35. Definition of Done
+# 55. Final System Flow
 
-Do not consider the task complete after creating classes or screens.
+The complete system can be summarized as:
 
-The final implementation must be:
+```text
+                         ┌─────────────┐
+                         │    DONOR    │
+                         └──────┬──────┘
+                                │
+                            donate()
+                                │
+                                ▼
+                       ┌────────────────┐
+                       │ BLOOD COLLECTED│
+                       └───────┬────────┘
+                               │
+                               ▼
+                        LABORATORY TEST
+                         /            \
+                      FAIL            PASS
+                       │                │
+                       ▼                ▼
+                   REJECTED      REGISTER DONATION
+                                      │
+                                      ▼
+                              ┌────────────────┐
+                              │   BLOOD BANK   │
+                              │ CENTRAL STOCK  │
+                              └───────┬────────┘
+                                      │
+                              Blood Transfer
+                                      │
+                                      ▼
+                              ┌───────────────┐
+                              │    HOSPITAL   │
+                              │ LOCAL INVENTORY│
+                              └───────┬───────┘
+                                      │
+                               Blood Request
+                                      │
+                                      ▼
+                                  PATIENT
+                                      │
+                                  Blood Issue
+                                      │
+                                      ▼
+                              Patient Treatment
+```
 
-1. **Runnable**
-2. **Persistent**
-3. **Role-aware**
-4. **Functionally connected**
-5. **Tested**
-6. **Consistent with the class diagram**
-7. **Free from placeholder business logic**
+The fundamental rule of the system is:
 
-Every button/menu option must perform a real operation.
+> **The blood bank manages the central blood supply, while each hospital manages its own local stock and is responsible for issuing blood to its patients.**
 
-Every transaction must update the relevant state.
+Therefore, the complete operational chain is:
 
-Every state change must be reflected in the relevant inventory/history/report.
-
----
-
-# 36. Implementation Rules for the Vibecoder
-
-Follow these rules while implementing:
-
-1. **Read the entire repository before making architectural decisions.**
-2. Treat this PRD and `JAVA.drawio` as the specification.
-3. Inspect existing files and preserve useful existing work.
-4. Do not silently remove classes or features.
-5. Do not replace the class diagram with a completely different architecture.
-6. Keep class names and public methods aligned with the diagram.
-7. If an implementation detail is ambiguous, choose the simplest robust solution consistent with the domain.
-8. Do not ask for confirmation for routine implementation decisions.
-9. Do not leave TODOs for core functionality.
-10. Do not use fake/mock data as a substitute for real business logic.
-11. Use real persisted state.
-12. Keep secrets/passwords out of source code where possible.
-13. Centralize validation.
-14. Centralize authorization.
-15. Keep business logic out of UI classes.
-16. Add meaningful error handling.
-17. Add tests for important workflows.
-18. Update the README with exact run instructions.
-19. After implementation, run the application and tests.
-20. Fix compile errors, runtime errors, and broken workflows before declaring completion.
-
----
-
-# 37. Final Verification Checklist
-
-Before finishing, perform a complete manual walkthrough.
-
-### Authentication
-
-- Login as donor.
-- Login as patient.
-- Login as hospital staff.
-- Login as blood-bank admin.
-- Try incorrect credentials.
-- Change password.
-- Logout.
-- Verify role restrictions.
-
-### Donor
-
-- View details.
-- Update details.
-- Check eligibility.
-- Register donation.
-- View donation history.
-
-### Patient
-
-- View details.
-- Update details.
-- View request status.
-
-### Hospital staff
-
-- Create patient.
-- Submit normal request.
-- Submit emergency request.
-- View inventory.
-- Check stock.
-- Issue blood.
-- Request restock.
-- View history.
-
-### Blood-bank admin
-
-- Register donation.
-- Initiate lab test.
-- Verify passed/failed units.
-- View inventory.
-- Approve request.
-- Reject request.
-- Dispatch transfer.
-- View alerts.
-- Generate all reports.
-- Export reports.
-
-### System
-
-- Restart application.
-- Verify data remains.
-- Verify inventory counts remain correct.
-- Verify transactions remain.
-- Verify no expired/rejected blood can be issued.
-- Verify no unauthorized role can bypass permissions.
+```text
+DONOR
+  ↓
+DONATION
+  ↓
+LAB TEST
+  ↓
+BLOOD BANK
+  ↓
+HOSPITAL TRANSFER
+  ↓
+HOSPITAL INVENTORY
+  ↓
+PRIORITY-BASED REQUEST
+  ↓
+PATIENT
+```
 
 ---
 
-# 38. Expected Deliverables
+# 56. Final Implementation Principle
 
-Produce:
+The project should not be implemented as a collection of independent classes.
 
-- complete Java source code;
-- all classes from the diagram;
-- clean package structure;
-- persistence implementation;
-- authentication/authorization;
-- complete console menus;
-- business workflows;
-- validation;
-- alerts;
-- reports;
-- tests;
-- seed/demo data;
-- README;
-- sample exported reports where useful.
+Every operation must cause a real state change.
 
-The final result should feel like a **complete academic-grade Blood Bank Management System**, not a collection of disconnected Java classes.
+For example:
 
-**Priority order:** correctness → complete functionality → class-diagram compliance → persistence → validation/security → testing → UI polish.
+```text
+Donor.donate()
+        ↓
+BloodDonation created
+        ↓
+BloodUnit created
+        ↓
+Lab test
+        ↓
+Admin registers successful donation
+        ↓
+BloodBank.inventory updated
+```
+
+Similarly:
+
+```text
+Hospital requests blood
+        ↓
+BloodRequest created
+        ↓
+Local inventory checked
+        ↓
+Shortage identified
+        ↓
+BloodBank approves
+        ↓
+BloodTransfer created
+        ↓
+BloodBank inventory decreases
+        ↓
+Hospital inventory increases
+        ↓
+Hospital issues blood
+        ↓
+Hospital inventory decreases
+        ↓
+Patient request completed
+```
+
+Every transaction, inventory change and status change must therefore be reflected consistently throughout the application.
+
+## Definition of Done
+
+The final application must be:
+
+**Runnable → Persistent → Role-based → Object-oriented → Functionally connected → Validated → Tested**
+
+It should function as a complete academic-grade Java Blood Bank Management System rather than a set of disconnected classes.
