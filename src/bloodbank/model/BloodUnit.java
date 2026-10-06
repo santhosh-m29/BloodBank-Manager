@@ -60,10 +60,7 @@ public final class BloodUnit implements Serializable {
         return !isExpired(today) && (status.equals("AVAILABLE") || status.equals("TRANSFERRED"));
     }
     public void expire(LocalDate today) {
-        if (isExpired(today) && !status.equals("ISSUED") && !status.equals("REJECTED")) {
-            status = "EXPIRED";
-            reservedFor = null;
-        }
+        throw new UnsupportedOperationException("Advanced expiry handling is planned for Phase 2 and is not part of the current 50% implementation.");
     }
     public boolean runLabTests(boolean passed) {
         Validation.require(status.equals("PENDING_TEST"), "Unit has already been tested.");
@@ -76,21 +73,16 @@ public final class BloodUnit implements Serializable {
         status = "AVAILABLE";
     }
     public void reserve(String request, LocalDate today) {
-        Validation.require(usable(today) && (reservedFor == null || reservedFor.equals(request)), "Unit is unavailable or reserved.");
-        reservedFor = Validation.id(request);
+        throw new UnsupportedOperationException("Unit reservation is planned for Phase 2 and is not part of the current 50% implementation.");
     }
     public void release(String request) {
-        if (request.equals(reservedFor)) reservedFor = null;
+        throw new UnsupportedOperationException("Unit reservation release is planned for Phase 2 and is not part of the current 50% implementation.");
     }
     public void transfer(String request, LocalDate today) {
-        Validation.require(usable(today) && request.equals(reservedFor), "Transfer unit is unavailable.");
-        status = "TRANSFERRED";
+        throw new UnsupportedOperationException("Unit transfer is planned for Phase 2 and is not part of the current 50% implementation.");
     }
     public void issue(String request, String patient, LocalDate today) {
-        Validation.require(usable(today) && request.equals(reservedFor), "Issue unit is unavailable.");
-        status = "ISSUED";
-        issuedTo = patient;
-        reservedFor = null;
+        throw new UnsupportedOperationException("Issuing blood units to patients is planned for Phase 2 and is not part of the current 50% implementation.");
     }
     @Override public String toString() {
         return bloodUnitId + " | " + bloodGroup + " | 1 | " + collectionDate + " | " + expiryDate + " | " + status + " | Lab: " + labResult + " | Reserved: " + reservedFor + " | Patient: " + issuedTo;

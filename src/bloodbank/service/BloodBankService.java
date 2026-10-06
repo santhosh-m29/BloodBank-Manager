@@ -76,7 +76,6 @@ public final class BloodBankService {
     private <T> T commit(String action, Function<SystemState, T> operation) {
         actor(state);
         SystemState next = FileManager.copy(state);
-        next.facilities.values().forEach(f -> f.getInventory().expire(today()));
         T result = operation.apply(next);
         next.audit.add(Instant.now(clock) + " | " + actor(next).getPersonId() + " | " + action);
         next.validate();
@@ -141,56 +140,26 @@ public final class BloodBankService {
     }
     public BloodRequest requestBlood(String patientId, int units, String urgency) {
         return commit("REQUEST_CREATED " + patientId, s -> {
-            HospitalStaff h = staff(s); Patient p = patient(s, patientId, h.getFacilityId()); BloodRequest r = new BloodRequest(newId("REQ"), today(), patientId, h.getFacilityId(), p.getBloodGroup(), units, urgency); s.requests.put(r.getTransactionId(), r); reserveLocal(s, r); return r;
+            HospitalStaff h = staff(s); Patient p = patient(s, patientId, h.getFacilityId()); BloodRequest r = new BloodRequest(newId("REQ"), today(), patientId, h.getFacilityId(), p.getBloodGroup(), units, urgency); s.requests.put(r.getTransactionId(), r); return r;
         });
-    }
-    private void reserveLocal(SystemState s, BloodRequest r) {
-        Inventory local = inventory(s, r.getHospitalId());
-        local.release(r.getTransactionId());
-        List<BloodUnit> available = local.available(r.getBloodGroup(), r.getTransactionId(), today());
-        available.stream().limit(r.getUnitsRequested()).forEach(u -> u.reserve(r.getTransactionId(), today()));
-        if (shortage(s, r) == 0) r.ready();
-    }
-    private int shortage(SystemState s, BloodRequest r) {
-        return Math.max(0, r.getUnitsRequested() - inventory(s, r.getHospitalId()).reserved(r.getTransactionId(), today()).size());
     }
     public int shortage(String requestId) {
-        BloodRequest r = request(state, requestId);
-        authorizeRequestRead(state, r);
-        return shortage(state, r);
+        throw new UnsupportedOperationException("Shortage calculation and reservations are planned for Phase 2 and are not part of the current 50% implementation.");
     }
     public void requestFromBank(String requestId, String bankId) {
-        commit("REQUEST_ROUTED " + requestId, s -> {
-            HospitalStaff h = staff(s); BloodRequest r = request(s, requestId); patient(s, r.getPatientId(), h.getFacilityId()); Validation.require(s.facilities.get(bankId) instanceof BloodBank, "Blood bank not found."); r.reopen(); reserveLocal(s, r); if (shortage(s, r) > 0) r.route(bankId); return null;
-        });
+        throw new UnsupportedOperationException("Request routing and shortage transfer are planned for Phase 2 and are not part of the current 50% implementation.");
     }
     public void approveRequest(String requestId) {
-        commit("REQUEST_APPROVED " + requestId, s -> {
-            BloodBankAdmin a = admin(s, true); BloodRequest r = bankRequest(s, requestId, a); Validation.require(r.getStatus().equals("PENDING"), "Only pending requests can be approved."); int shortage = shortage(s, r); List<BloodUnit> stock = inventory(s, a.getFacilityId()).available(r.getBloodGroup(), null, today()); Validation.require(stock.size() >= shortage, "Insufficient central stock for the shortage.");
-            // Do not consume scarce stock ahead of an earlier, fulfillable request of higher priority.
-            for (BloodRequest earlier : sortedRequests(s)) {
-                if (earlier == r) break; if (earlier.getStatus().equals("PENDING") && a.getFacilityId().equals(earlier.getBankId()) && earlier.getBloodGroup().equals(r.getBloodGroup()) && shortage(s, earlier) > 0 && shortage(s, earlier) <= stock.size()) throw new IllegalArgumentException("Process higher-priority/earlier request first: " + earlier.getTransactionId());
-            }
-            if (shortage == 0) r.ready(); else {
-                stock.stream().limit(shortage).forEach(u -> u.reserve(r.getTransactionId(), today())); r.approveRequest();
-            }
-            return null;
-        });
+        throw new UnsupportedOperationException("Request approval and reservations are planned for Phase 2 and are not part of the current 50% implementation.");
     }
     public void rejectRequest(String requestId, String reason) {
-        commit("REQUEST_REJECTED " + requestId, s -> {
-            BloodBankAdmin a = admin(s, true); BloodRequest r = bankRequest(s, requestId, a); r.rejectRequest(reason); s.facilities.values().forEach(f -> f.getInventory().release(requestId)); return null;
-        });
+        throw new UnsupportedOperationException("Request rejection is planned for Phase 2 and is not part of the current 50% implementation.");
     }
     public BloodTransfer dispatchTransfer(String requestId) {
-        return commit("TRANSFER_DISPATCHED " + requestId, s -> {
-            BloodBankAdmin a = admin(s, true); BloodRequest r = bankRequest(s, requestId, a); Validation.require(r.getStatus().equals("APPROVED"), "Request must be approved before dispatch."); int missing = shortage(s, r); Inventory central = inventory(s, a.getFacilityId()); Validation.require(central.reserved(requestId, today()).size() == missing, "Reserved stock changed or expired; reject and recreate this request."); BloodTransfer t = new BloodTransfer(newId("TR"), today(), a.getFacilityId(), r.getHospitalId(), r.getBloodGroup(), missing, requestId); t.transferUnits(central, inventory(s, r.getHospitalId()), today()); s.transfers.put(t.getTransactionId(), t); r.ready(); return t;
-        });
+        throw new UnsupportedOperationException("Blood transfer is planned for Phase 2 and is not part of the current 50% implementation.");
     }
     public void issueBlood(String requestId) {
-        commit("BLOOD_ISSUED " + requestId, s -> {
-            HospitalStaff h = staff(s); BloodRequest r = request(s, requestId); patient(s, r.getPatientId(), h.getFacilityId()); Validation.require(r.getStatus().equals("READY"), "Request is not ready for issue."); List<BloodUnit> units = inventory(s, h.getFacilityId()).reserved(requestId, today()); Validation.require(units.size() == r.getUnitsRequested(), "Local stock expired or is insufficient. Recheck/request blood from the bank."); units.forEach(u -> u.issue(requestId, r.getPatientId(), today())); r.fulfill(units); return null;
-        });
+        throw new UnsupportedOperationException("Issuing blood to patients is planned for Phase 2 and is not part of the current 50% implementation.");
     }
     private List<BloodRequest> sortedRequests(SystemState s) {
         return s.requests.values().stream().sorted(Comparator.comparingInt(BloodRequest::priorityDispatch).thenComparing(BloodRequest::getTransactionDate)).toList();
@@ -217,19 +186,13 @@ public final class BloodBankService {
         return copy.people.values().stream().filter(p -> p instanceof Patient patient && patient.getHospitalId().equals(h.getFacilityId())).map(p -> (Patient) p).toList();
     }
     public List<BloodTransfer> transfers() {
-        SystemState copy = FileManager.copy(state);
-        Person p = actor(copy);
-        Validation.require(p instanceof Staff, "Transfer access denied.");
-        String facility = ((Staff) p).getFacilityId();
-        return copy.transfers.values().stream().filter(t -> t.getSourceFacilityId().equals(facility) || t.getDestinationFacilityId().equals(facility)).toList();
+        throw new UnsupportedOperationException("Blood transfer history is planned for Phase 2 and is not part of the current 50% implementation.");
     }
     public Inventory ownInventory() {
         Person p = actor(state);
         Validation.require(p instanceof Staff, "Inventory access denied.");
         SystemState copy = FileManager.copy(state);
-        Inventory inv = inventory(copy, ((Staff) p).getFacilityId());
-        inv.expire(today());
-        return inv;
+        return inventory(copy, ((Staff) p).getFacilityId());
     }
     public Map<String, String> facilities() {
         actor(state);

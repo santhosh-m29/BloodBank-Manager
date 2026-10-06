@@ -34,21 +34,10 @@ public final class BloodTransfer extends Transaction {
         return List.copyOf(unitIds);
     }
     public void transferUnits(Inventory source, Inventory destination, LocalDate today) {
-        Validation.require(status.equals("PENDING") && source != destination, "Invalid or duplicate transfer.");
-        List<BloodUnit> units = source.reserved(requestId, today);
-        Validation.require(units.size() == unitsTransferred && units.stream().allMatch(u -> u.getBloodGroup().equals(bloodGroup)), "Reserved transfer stock is insufficient; reject and recreate the request if stock expired.");
-        Validation.require(units.stream().noneMatch(u -> destination.getBloodUnits().stream().anyMatch(d -> d.getBloodUnitId().equals(u.getBloodUnitId()))), "Duplicate destination unit.");
-        for (BloodUnit unit : units) {
-            unit.transfer(requestId, today);
-            source.removeBloodUnit(unit.getBloodUnitId());
-            destination.addBloodUnit(unit);
-            unitIds.add(unit.getBloodUnitId());
-        }
-        recordTransfer();
+        throw new UnsupportedOperationException("Blood transfer is planned for Phase 2 and is not part of the current 50% implementation.");
     }
     public void recordTransfer() {
-        Validation.require(status.equals("PENDING") && unitIds.size() == unitsTransferred, "Transfer must move all units before recording.");
-        status = "DISPATCHED";
+        throw new UnsupportedOperationException("Blood transfer is planned for Phase 2 and is not part of the current 50% implementation.");
     }
     @Override public String toString() {
         return super.toString() + " | " + sourceFacilityId + " -> " + destinationFacilityId + " | " + bloodGroup + " | Qty: " + unitsTransferred + " | Request: " + requestId + " | Units: " + unitIds;

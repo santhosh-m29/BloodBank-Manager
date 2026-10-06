@@ -6,22 +6,50 @@ import java.util.*;
 import bloodbank.model.*;
 import bloodbank.ui.Menu;
 import bloodbank.utility.*;
-/** Dependency-free regression suite. Every fixture uses a unique temporary directory. */
+
+/**
+ * Phase-1 (50% Milestone) regression test suite.
+ * Validates authentication, donor registration, blood donation, laboratory validation,
+ * donation registration, blood-bank inventory, patient creation, blood-request creation,
+ * basic local availability checking, priority mapping, persistence, and explicit Phase-2 deferrals.
+ */
 public final class SystemTest {
     private static int checks;
+
     private static void check(boolean value, String message) {
         checks++;
         if (!value) throw new AssertionError(message);
     }
-    private static void denied(Runnable action, String message) {
+
+    @FunctionalInterface
+    private interface ThrowingRunnable {
+        void run() throws Exception;
+    }
+
+    private static void denied(ThrowingRunnable action, String message) {
         boolean failed = false;
         try {
             action.run();
-        } catch (IllegalArgumentException | IllegalStateException ex) {
+        } catch (IllegalArgumentException | IllegalStateException | UnsupportedOperationException ex) {
             failed = true;
+        } catch (Exception ex) {
+            failed = false;
         }
         check(failed, message);
     }
+
+    private static void unsupported(ThrowingRunnable action, String message) {
+        boolean caught = false;
+        try {
+            action.run();
+        } catch (UnsupportedOperationException ex) {
+            caught = true;
+        } catch (Exception ex) {
+            caught = false;
+        }
+        check(caught, message + " [UnsupportedOperationException]");
+    }
+
     private static final class TestClock extends Clock {
         private Instant instant = Instant.parse("2026-10-06T06:00:00Z");
         public ZoneId getZone() {
@@ -37,17 +65,20 @@ public final class SystemTest {
             instant = instant.plus(Duration.ofDays(days));
         }
     }
-    private static final class Fixture implements AutoCloseable {
+
+    static final class Fixture implements AutoCloseable {
         final Path directory;
         final FileManager files;
         final TestClock clock = new TestClock();
         BloodBankService service;
+
         Fixture() throws IOException {
             directory = Files.createTempDirectory("bbms-test-");
             files = new FileManager(directory);
             files.lock();
             service = new BloodBankService(DemoData.create(), files, clock);
         }
+
         void as(String username) {
             String password = switch (username) {
                 case "admin" -> "admin123";
@@ -57,10 +88,12 @@ public final class SystemTest {
             };
             check(service.login(username, password), "Login " + username);
         }
+
         BloodDonation collect(int qty) {
             as("donor");
             return service.donate("BB001", qty);
         }
+
         BloodDonation stock(int qty) {
             BloodDonation d = collect(qty);
             as("admin");
@@ -68,9 +101,11 @@ public final class SystemTest {
             service.registerDonation(d.getTransactionId());
             return d;
         }
+
         void reload() throws IOException {
             service = new BloodBankService(files.loadData(), files, clock);
         }
+
         public void close() throws IOException {
             files.close();
             try (var paths = Files.walk(directory)) {
@@ -78,15 +113,17 @@ public final class SystemTest {
             }
         }
     }
+
     public static void main(String[] args) throws Exception {
         donationAndAuthentication();
-        endToEndAndPersistence();
-        priorityAndReservations();
+        phase1WorkflowAndPersistence();
+        priorityAndPhase2Guardrails();
         authorizationAndValidation();
-        expiryAndFailure();
-        reportsAndConsole();
-        System.out.println("PASS: " + checks + " regression assertions across six workflow groups.");
+        persistenceAndFailure();
+        consolePhase1();
+        System.out.println("PASS: " + checks + " regression assertions across Phase-1 workflow groups.");
     }
+
     private static void donationAndAuthentication() throws Exception {
         try (Fixture f = new Fixture()) {
             BloodBankService s = f.service;
@@ -131,102 +168,123 @@ public final class SystemTest {
             denied(() -> f.service.registerDonation(d.getTransactionId()), "Failed donation cannot register");
         }
     }
-    private static void endToEndAndPersistence() throws Exception {
+
+    private static void phase1WorkflowAndPersistence() throws Exception {
         try (Fixture f = new Fixture()) {
-            f.stock(22);
-            BloodBankService s = f.service;
-            f.as("hosp1");
-            BloodRequest initial = s.requestBlood("PAT001", 2, "MEDIUM");
-            s.requestFromBank(initial.getTransactionId(), "BB001");
+            // 1. Donor collection
+            f.as("donor");
+            BloodDonation donation = f.service.donate("BB001", 4);
+            check(donation.getStatus().equals("PENDING_TEST"), "Phase-1: Donation created in PENDING_TEST state");
+            check(donation.getUnits().size() == 4, "Phase-1: 4 BloodUnit instances created");
+
+            // 2. Lab test (PASS)
             f.as("admin");
-            s.approveRequest(initial.getTransactionId());
-            BloodTransfer first = s.dispatchTransfer(initial.getTransactionId());
-            check(first.getUnitsTransferred() == 2, "Initial hospital transfer");
-            // Set up the PRD's 20 central + 2 local scenario by releasing the first request in the fixture snapshot.
-            SystemState setup = f.files.loadData();
-            setup.requests.remove(initial.getTransactionId());
-            setup.transfers.clear();
-            setup.facilities.get("HOSP001").getInventory().release(initial.getTransactionId());
-            f.files.saveData(setup);
-            f.reload();
-            s = f.service;
+            f.service.labTest(donation.getTransactionId(), true, "Lab note PASS");
+            check(f.service.donations().get(0).getStatus().equals("TEST_PASSED"), "Phase-1: Donation marked TEST_PASSED");
+            check(f.service.ownInventory().getTotalStock(f.service.today()) == 0, "Phase-1: Passed blood not in usable stock before registration");
+
+            // 3. Register approved donation into central inventory
+            f.service.registerDonation(donation.getTransactionId());
+            check(f.service.ownInventory().getTotalStock(f.service.today()) == 4, "Phase-1: Blood units registered into blood bank inventory");
+            check(f.service.ownInventory().getStockForGroup("A+", f.service.today()) == 4, "Phase-1: Usable A+ stock is 4");
+
+            // 4. Hospital creates patient
             f.as("hosp1");
-            BloodRequest r = s.requestBlood("PAT001", 5, "HIGH");
-            String id = r.getTransactionId();
-            check(s.shortage(id) == 3, "5 required minus 2 local equals 3 shortage");
-            s.requestFromBank(id, "BB001");
-            f.as("admin");
-            s.approveRequest(id);
-            check(s.ownInventory().getStockForGroup("A+", s.today()) == 17, "Approval reserves only three units");
-            BloodTransfer transfer = s.dispatchTransfer(id);
-            check(transfer.getUnitsTransferred() == 3 && transfer.getUnitIds().size() == 3, "Transfer records actual shortage and IDs");
-            check(s.ownInventory().getTotalStock(s.today()) == 17, "Central inventory 20 to 17");
-            BloodBankService active = s;
-            denied(() -> active.dispatchTransfer(id), "Duplicate transfer rejected");
-            f.as("hosp1");
-            check(s.ownInventory().getTotalStock(s.today()) == 5, "Hospital inventory 2 to 5");
-            check(s.requests().get(0).getStatus().equals("READY"), "Transfer does not fulfill patient request");
-            f.reload();
-            s = f.service;
-            f.as("hosp1");
-            s.issueBlood(id);
-            check(s.ownInventory().getTotalStock(s.today()) == 0, "Hospital inventory 5 to 0");
-            check(s.requests().get(0).getStatus().equals("FULFILLED"), "Request fulfilled only at issue");
-            check(s.requests().get(0).getIssuedUnitIds().size() == 5 && s.ownInventory().getBloodUnits().stream().allMatch(u -> u.getStatus().equals("ISSUED") && u.getIssuedTo().equals("PAT001")), "Issued records retained");
-            BloodBankService issuedService = s;
-            denied(() -> issuedService.issueBlood(id), "Double issue rejected");
-            f.reload();
-            f.as("patient");
-            check(f.service.requests().get(0).getStatus().equals("FULFILLED"), "Patient sees persisted completion");
-            f.as("admin");
-            check(f.service.transfers().size() == 1 && f.service.donations().size() == 1, "Donation and transfer history persisted");
-            check(f.service.ownInventory().getTotalStock(f.service.today()) == 17, "Restart preserves central stock without reseeding");
-        }
-        try (Fixture f = new Fixture()) {
-            f.stock(4);
-            f.as("hosp1");
-            BloodRequest r = f.service.requestBlood("PAT001", 2, "LOW");
-            f.service.requestFromBank(r.getTransactionId(), "BB001");
-            f.as("admin");
-            f.service.approveRequest(r.getTransactionId());
-            f.service.dispatchTransfer(r.getTransactionId());
-            SystemState setup = f.files.loadData();
-            setup.requests.remove(r.getTransactionId());
-            setup.transfers.clear();
-            setup.facilities.get("HOSP001").getInventory().release(r.getTransactionId());
-            f.files.saveData(setup);
+            Patient newPatient = new Patient("PAT099", "Sarah Connor", 33, "Female", "9876543210", "123 Resistance Way", "sarah", "sarah123", "A+", "Trauma", "Dr. Clara", 2, "HOSP001");
+            f.service.createPatient(newPatient);
+            check(f.service.patients().stream().anyMatch(p -> p.getPersonId().equals("PAT099")), "Phase-1: Hospital patient created");
+
+            // 5. Hospital creates blood request
+            BloodRequest request = f.service.requestBlood("PAT099", 2, "HIGH");
+            check(request.getStatus().equals("PENDING"), "Phase-1: Request created in PENDING state");
+            check(request.getUnitsRequested() == 2, "Phase-1: Request quantity is 2");
+            check(request.getBloodGroup().equals("A+"), "Phase-1: Request blood group is A+");
+            check(request.getHospitalId().equals("HOSP001"), "Phase-1: Request linked to hospital");
+
+            // 6. Check local inventory availability
+            check(!request.checkAvailability(f.service.ownInventory(), f.service.today()), "Phase-1: Local hospital stock is insufficient (0 units)");
+
+            // 7. Persistence verification across restart
             f.reload();
             f.as("hosp1");
-            BloodRequest local = f.service.requestBlood("PAT001", 2, "LOW");
-            check(local.getStatus().equals("READY"), "Sufficient local stock requires no bank approval");
-            f.service.issueBlood(local.getTransactionId());
-            check(f.service.transfers().isEmpty(), "Local issue creates no transfer");
+            check(f.service.patients().stream().anyMatch(p -> p.getPersonId().equals("PAT099")), "Phase-1: Created patient persisted across reload");
+            check(f.service.requests().stream().anyMatch(r -> r.getTransactionId().equals(request.getTransactionId())), "Phase-1: Request persisted across reload");
+            f.as("admin");
+            check(f.service.ownInventory().getTotalStock(f.service.today()) == 4, "Phase-1: Central inventory persisted across reload");
+            check(f.service.donations().stream().anyMatch(d -> d.getTransactionId().equals(donation.getTransactionId())), "Phase-1: Donation persisted across reload");
         }
     }
-    private static void priorityAndReservations() throws Exception {
+
+    private static void priorityAndPhase2Guardrails() throws Exception {
         try (Fixture f = new Fixture()) {
-            f.stock(6);
             f.as("hosp1");
-            BloodRequest low = f.service.requestBlood("PAT001", 2, "LOW"), high = f.service.requestBlood("PAT001", 2, "HIGH"), critical = f.service.requestBlood("PAT001", 2, "CRITICAL");
-            for (BloodRequest r : List.of(low, high, critical)) f.service.requestFromBank(r.getTransactionId(), "BB001");
+            BloodRequest reqLow = f.service.requestBlood("PAT001", 1, "LOW");
+            BloodRequest reqMed = f.service.requestBlood("PAT001", 1, "MEDIUM");
+            BloodRequest reqHigh = f.service.requestBlood("PAT001", 1, "HIGH");
+            BloodRequest reqCrit = f.service.requestBlood("PAT001", 1, "CRITICAL");
+
+            // Priority mapping: CRITICAL(1), HIGH(2), MEDIUM(3), LOW(4)
+            check(reqCrit.priorityDispatch() == 1, "Priority CRITICAL maps to 1");
+            check(reqHigh.priorityDispatch() == 2, "Priority HIGH maps to 2");
+            check(reqMed.priorityDispatch() == 3, "Priority MEDIUM maps to 3");
+            check(reqLow.priorityDispatch() == 4, "Priority LOW maps to 4");
+
+            // Priority sorting verification
+            List<BloodRequest> sorted = f.service.requests();
+            check(sorted.get(0).getUrgency().equals("CRITICAL"), "Sorted critical first");
+            check(sorted.get(1).getUrgency().equals("HIGH"), "Sorted high second");
+            check(sorted.get(2).getUrgency().equals("MEDIUM"), "Sorted medium third");
+            check(sorted.get(3).getUrgency().equals("LOW"), "Sorted low fourth");
+
+            // Phase-2 Guardrails: Verify deferred features throw UnsupportedOperationException
             f.as("admin");
-            check(f.service.requests().get(0).getUrgency().equals("CRITICAL"), "Requests sorted critical before high before low");
-            denied(() -> f.service.approveRequest(low.getTransactionId()), "Lower priority cannot take stock first");
-            f.service.approveRequest(critical.getTransactionId());
-            f.service.approveRequest(high.getTransactionId());
-            f.service.approveRequest(low.getTransactionId());
-            check(f.service.ownInventory().getStockForGroup("A+", f.service.today()) == 0, "Reservations avoid overcommit");
-            f.service.rejectRequest(high.getTransactionId(), "No longer required");
-            check(f.service.ownInventory().getStockForGroup("A+", f.service.today()) == 2, "Rejection releases bank reservations");
-            denied(() -> f.service.dispatchTransfer(high.getTransactionId()), "Rejected request cannot dispatch");
+            unsupported(() -> f.service.approveRequest(reqCrit.getTransactionId()), "approveRequest deferred");
+            unsupported(() -> f.service.rejectRequest(reqCrit.getTransactionId(), "test"), "rejectRequest deferred");
+            unsupported(() -> f.service.dispatchTransfer(reqCrit.getTransactionId()), "dispatchTransfer deferred");
+            unsupported(() -> f.service.transfers(), "transfers deferred");
             f.as("hosp1");
-            BloodRequest tooLarge = f.service.requestBlood("PAT001", 10, "CRITICAL");
-            f.service.requestFromBank(tooLarge.getTransactionId(), "BB001");
-            f.as("admin");
-            denied(() -> f.service.approveRequest(tooLarge.getTransactionId()), "Critical urgency never bypasses availability");
-            check(f.service.ownInventory().getStockForGroup("A+", f.service.today()) == 2, "Failed approval leaves stock unchanged");
+            unsupported(() -> f.service.requestFromBank(reqCrit.getTransactionId(), "BB001"), "requestFromBank deferred");
+            unsupported(() -> f.service.shortage(reqCrit.getTransactionId()), "shortage deferred");
+            unsupported(() -> f.service.issueBlood(reqCrit.getTransactionId()), "issueBlood deferred");
+
+            // Model-level Phase-2 guardrails
+            BloodBank bank = new BloodBank("BB999", "Test", "Addr", "1234567890", "Manager");
+            Hospital hosp = new Hospital("H999", "Test", "Addr", "1234567890", "Type", "112");
+            BloodTransfer transfer = new BloodTransfer("TR999", f.service.today(), "BB999", "H999", "A+", 1, "REQ999");
+            unsupported(() -> bank.transferBlood(transfer, hosp, f.service.today()), "BloodBank.transferBlood deferred");
+            unsupported(() -> transfer.transferUnits(bank.getInventory(), hosp.getInventory(), f.service.today()), "BloodTransfer.transferUnits deferred");
+            unsupported(transfer::recordTransfer, "BloodTransfer.recordTransfer deferred");
+
+            BloodUnit unit = new BloodUnit("U999", "A+", "D999", f.service.today(), f.service.today().plusDays(42));
+            unsupported(() -> unit.reserve("REQ999", f.service.today()), "BloodUnit.reserve deferred");
+            unsupported(() -> unit.release("REQ999"), "BloodUnit.release deferred");
+            unsupported(() -> unit.transfer("REQ999", f.service.today()), "BloodUnit.transfer deferred");
+            unsupported(() -> unit.issue("REQ999", "PAT001", f.service.today()), "BloodUnit.issue deferred");
+            unsupported(() -> unit.expire(f.service.today()), "BloodUnit.expire deferred");
+
+            unsupported(() -> reqCrit.route("BB001"), "BloodRequest.route deferred");
+            unsupported(reqCrit::ready, "BloodRequest.ready deferred");
+            unsupported(reqCrit::approveRequest, "BloodRequest.approveRequest deferred");
+            unsupported(() -> reqCrit.rejectRequest("reason"), "BloodRequest.rejectRequest deferred");
+            unsupported(reqCrit::reopen, "BloodRequest.reopen deferred");
+            unsupported(() -> reqCrit.fulfill(List.of(unit)), "BloodRequest.fulfill deferred");
+
+            Inventory inv = f.service.ownInventory();
+            unsupported(() -> inv.reserved("REQ999", f.service.today()), "Inventory.reserved deferred");
+            unsupported(() -> inv.release("REQ999"), "Inventory.release deferred");
+            unsupported(() -> inv.expire(f.service.today()), "Inventory.expire deferred");
+            unsupported(() -> inv.checkLowStock(5, f.service.today()), "Inventory.checkLowStock deferred");
+
+            AlertManager alerts = new AlertManager(10, 7);
+            unsupported(() -> alerts.checkLowStock("HOSP001", inv, f.service.today()), "AlertManager.checkLowStock deferred");
+            unsupported(() -> alerts.checkExpiry("HOSP001", inv, f.service.today()), "AlertManager.checkExpiry deferred");
+
+            ReportGenerator reports = new ReportGenerator("Report", f.service.today());
+            unsupported(() -> reports.generateInventoryReport("HOSP001", inv), "ReportGenerator.generateInventoryReport deferred");
+            unsupported(() -> reports.exportReport("text", Path.of("test.txt")), "ReportGenerator.exportReport deferred");
         }
     }
+
     private static void authorizationAndValidation() throws Exception {
         try (Fixture f = new Fixture()) {
             f.as("hosp2");
@@ -239,11 +297,7 @@ public final class SystemTest {
             denied(() -> f.service.requestBlood("P2", -1, "LOW"), "Negative quantity denied");
             denied(() -> f.service.requestBlood("P2", 1, "NORMAL"), "Invalid urgency denied");
             BloodRequest r = f.service.requestBlood("P2", 1, "LOW");
-            f.service.requestFromBank(r.getTransactionId(), "BB001");
-            f.as("hosp1");
-            denied(() -> f.service.issueBlood(r.getTransactionId()), "Other hospital cannot issue request");
-            denied(() -> f.service.approveRequest(r.getTransactionId()), "Hospital cannot approve central request");
-            denied(() -> f.service.shortage(r.getTransactionId()), "Other hospital cannot read request shortage");
+            check(r.getPatientId().equals("P2"), "Blood request linked to created patient");
             f.as("patient");
             denied(f.service::ownInventory, "Patient cannot view inventory");
             denied(() -> f.service.requestBlood("PAT001", 1, "LOW"), "Patient cannot request blood");
@@ -252,10 +306,7 @@ public final class SystemTest {
             f.service.registerStaff(new BloodBankAdmin("A2", "Read only", 30, "Other", "1234567890", "Address", "readadmin", "password2", "E2", "BB001", "READ_ONLY"));
             f.service.registerStaff(new BloodBankAdmin("A3", "Other bank", 30, "Other", "1234567890", "Address", "otheradmin", "password2", "E3", "BB002", "STANDARD"));
             check(f.service.login("readadmin", "password2"), "Read-only admin login");
-            denied(() -> f.service.rejectRequest(r.getTransactionId(), "reason"), "Read-only admin cannot mutate");
             check(f.service.login("otheradmin", "password2"), "Second bank admin login");
-            denied(() -> f.service.rejectRequest(r.getTransactionId(), "reason"), "Admin scoped to bank");
-            check(f.service.requests().isEmpty(), "Bank request visibility scoped");
             denied(() -> f.service.registerFacility(new BloodBank("BB003", "Third", "Address", "1234567890", "Manager")), "Standard admin cannot provision facility");
             f.reload();
             check(f.service.login("p2", "password2"), "New patient can log in after restart");
@@ -268,34 +319,8 @@ public final class SystemTest {
         denied(() -> new Donor("D", "Name", 22, "Other", "1234567890", "Address", "user", "password", "Z+", 13, 60), "Invalid blood group denied");
         denied(() -> new Donor("D", "Name", 22, "Other", "1234567890", "Address", "user", "password", "A+", Double.NaN, 60), "Nonfinite measurements denied");
     }
-    private static void expiryAndFailure() throws Exception {
-        try (Fixture f = new Fixture()) {
-            f.stock(3);
-            f.as("hosp1");
-            BloodRequest r = f.service.requestBlood("PAT001", 2, "LOW");
-            f.service.requestFromBank(r.getTransactionId(), "BB001");
-            f.as("admin");
-            f.service.approveRequest(r.getTransactionId());
-            f.clock.advance(42);
-            check(f.service.ownInventory().getTotalStock(f.service.today()) == 0, "Expiry date itself is unusable");
-            denied(() -> f.service.dispatchTransfer(r.getTransactionId()), "Expired reserved units cannot transfer");
-            f.service.rejectRequest(r.getTransactionId(), "Expired");
-            check(f.service.ownInventory().getBloodUnits().stream().allMatch(u -> u.getStatus().equals("EXPIRED")), "Expired status saved on next mutation");
-        }
-        try (Fixture f = new Fixture()) {
-            f.stock(2);
-            f.as("hosp1");
-            BloodRequest r = f.service.requestBlood("PAT001", 2, "LOW");
-            f.service.requestFromBank(r.getTransactionId(), "BB001");
-            f.as("admin");
-            f.service.approveRequest(r.getTransactionId());
-            f.service.dispatchTransfer(r.getTransactionId());
-            f.clock.advance(42);
-            f.as("hosp1");
-            denied(() -> f.service.issueBlood(r.getTransactionId()), "Expired hospital units cannot issue");
-            f.service.requestFromBank(r.getTransactionId(), "BB001");
-            check(f.service.shortage(r.getTransactionId()) == 2, "Expired local reservations can be restocked");
-        }
+
+    private static void persistenceAndFailure() throws Exception {
         try (Fixture f = new Fixture()) {
             f.as("donor");
             Path blocker = f.directory.resolve("not-a-directory");
@@ -323,18 +348,10 @@ public final class SystemTest {
             }
         }
     }
-    private static void reportsAndConsole() throws Exception {
+
+    private static void consolePhase1() throws Exception {
         try (Fixture f = new Fixture()) {
             f.stock(2);
-            f.clock.advance(38);
-            Inventory inv = f.service.ownInventory();
-            AlertManager alerts = new AlertManager(10, 7);
-            check(alerts.checkLowStock("BB001", inv, f.service.today()).size() == 8, "Low stock covers all groups including zero");
-            check(alerts.checkExpiry("BB001", inv, f.service.today()).size() == 2, "Near-expiry alerts");
-            ReportGenerator reports = new ReportGenerator("Test report", f.service.today());
-            String content = reports.generateInventoryReport("BB001", inv) + reports.generateDonationReport(f.service.donations());
-            Path exported = reports.exportReport(content, f.directory.resolve("reports/report.txt"));
-            check(Files.readString(exported).contains("REGISTERED") && content.contains("Unreserved"), "Report export includes status and counts");
             f.service.logout();
             ByteArrayOutputStream output = new ByteArrayOutputStream();
             new Menu(f.service, new StringReader("bad\n1\ndonor\nwrong\n1\ndonor\ndonor123\n1\n5\n2\n"), new PrintStream(output), f.directory.resolve("reports")).displayMainMenu();

@@ -17,6 +17,6 @@ public final class BloodBank extends Organization {
         return getInventory().removeBloodUnit(id);
     }
     public void transferBlood(BloodTransfer transfer, Hospital destination, java.time.LocalDate today) {
-        transfer.transferUnits(getInventory(), destination.getInventory(), today);
+        throw new UnsupportedOperationException("Blood transfer is planned for Phase 2 and is not part of the current 50% implementation.");
     }
 }

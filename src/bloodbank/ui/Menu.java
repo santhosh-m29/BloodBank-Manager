@@ -132,7 +132,7 @@ public final class Menu {
         }
     }
     public void staffMenu() throws IOException {
-        show("\nHOSPITAL\n1. Create Patient\n2. View Patients\n3. Create Blood Request\n4. Create Emergency/Urgent Request\n5. Check Local Inventory\n6. View Inventory\n7. Issue Blood\n8. Request Blood from Blood Bank / Recheck Stock\n9. View Request History\n10. View Transfer History\n11. Change Password\n12. Logout\n13. View Alerts\n14. Export Reports");
+        show("\nHOSPITAL\n1. Create Patient\n2. View Patients\n3. Create Blood Request\n4. Create Emergency/Urgent Request\n5. Check Local Inventory\n6. View Inventory\n7. View Request History\n8. Change Password\n9. Logout");
         choice = number("Choice");
         switch (choice) {
             case 1 -> createPatient();
@@ -144,30 +144,17 @@ public final class Menu {
                 if (choice == 4) Validation.require(Set.of("CRITICAL", "HIGH").contains(urgency), "Urgent requests must be HIGH or CRITICAL.");
                 BloodRequest r = service.requestBlood(patient, qty, urgency);
                 show(r);
-                show("Reserved locally: " + (qty - service.shortage(r.getTransactionId())) + "; shortage: " + service.shortage(r.getTransactionId()));
+                boolean available = r.checkAvailability(service.ownInventory(), service.today());
+                show("Local inventory sufficient: " + (available ? "Yes" : "No"));
             }
             case 5 -> {
                 String group = read("Blood group").toUpperCase(Locale.ROOT);
-                show("Unreserved usable units: " + service.ownInventory().getStockForGroup(group, service.today()));
+                show("Usable units in local inventory: " + service.ownInventory().getStockForGroup(group, service.today()));
             }
             case 6 -> list(service.ownInventory().getBloodUnits());
-            case 7 -> {
-                list(service.requests());
-                service.issueBlood(read("Request ID"));
-                show("Blood issued. Request fulfilled.");
-            }
-            case 8 -> {
-                list(service.requests());
-                show(service.facilities());
-                service.requestFromBank(read("Request ID"), read("Blood bank ID"));
-                show("Local stock checked; any shortage sent to the selected blood bank.");
-            }
-            case 9 -> list(service.requests());
-            case 10 -> list(service.transfers());
-            case 11 -> changePassword();
-            case 12 -> choice = 0;
-            case 13 -> alerts();
-            case 14 -> reports();
+            case 7 -> list(service.requests());
+            case 8 -> changePassword();
+            case 9 -> choice = 0;
             default -> show("Invalid menu choice.");
         }
     }
@@ -175,7 +162,7 @@ public final class Menu {
         staffMenu();
     }
     public void adminMenu() throws IOException {
-        show("\nBLOOD BANK\n1. View Pending Donations\n2. Initiate Lab Test\n3. Register Approved Donation\n4. View Blood Bank Inventory\n5. View Hospital Requests (priority order)\n6. Approve Request\n7. Reject Request\n8. Dispatch Blood Transfer\n9. View Transfer History\n10. View Alerts\n11. Generate Reports\n12. Change Password\n13. Logout\n14. Register Donor\n15. Register Facility / Staff\n16. View My Audit History");
+        show("\nBLOOD BANK\n1. View Pending Donations\n2. Initiate Lab Test\n3. Register Approved Donation\n4. View Blood Bank Inventory\n5. View Hospital Requests (priority order)\n6. Register Donor\n7. Register Facility / Staff\n8. View My Audit History\n9. Change Password\n10. Logout");
         choice = number("Choice");
         switch (choice) {
             case 1 -> list(service.donations().stream().filter(d -> !d.getStatus().equals("REGISTERED") && !d.getStatus().equals("REJECTED")).toList());
@@ -194,28 +181,11 @@ public final class Menu {
             }
             case 4 -> list(service.ownInventory().getBloodUnits());
             case 5 -> list(service.requests());
-            case 6 -> {
-                list(service.requests());
-                service.approveRequest(read("Request ID"));
-                show("Request approved; central units reserved.");
-            }
-            case 7 -> {
-                list(service.requests());
-                service.rejectRequest(read("Request ID"), read("Reason"));
-                show("Request rejected; reservations released.");
-            }
-            case 8 -> {
-                list(service.requests());
-                show(service.dispatchTransfer(read("Request ID")));
-            }
-            case 9 -> list(service.transfers());
-            case 10 -> alerts();
-            case 11 -> reports();
-            case 12 -> changePassword();
-            case 13 -> choice = 0;
-            case 14 -> createDonor();
-            case 15 -> provision();
-            case 16 -> list(service.audit());
+            case 6 -> createDonor();
+            case 7 -> provision();
+            case 8 -> list(service.audit());
+            case 9 -> changePassword();
+            case 10 -> choice = 0;
             default -> show("Invalid menu choice.");
         }
     }
@@ -267,17 +237,9 @@ public final class Menu {
         show("Registration saved.");
     }
     private void alerts() {
-        String facility = ((Staff) service.currentUser()).getFacilityId();
-        AlertManager manager = new AlertManager(10, 7);
-        Inventory inventory = service.ownInventory();
-        list(manager.checkLowStock(facility, inventory, service.today()));
-        list(manager.checkExpiry(facility, inventory, service.today()));
+        throw new UnsupportedOperationException("Alerts are planned for Phase 2 and are not part of the current 50% implementation.");
     }
     private void reports() throws IOException {
-        String facility = ((Staff) service.currentUser()).getFacilityId();
-        ReportGenerator generator = new ReportGenerator("Blood Bank Management - " + facility, service.today());
-        String report = generator.generateInventoryReport(facility, service.ownInventory()) + "\n" + generator.generateDonationReport(service.donations()) + "\n" + generator.generateRequestReport(service.requests()) + "\n" + generator.generateTransferReport(service.transfers());
-        show(report);
-        show("Exported: " + generator.exportReport(report, reports.resolve(BloodBankService.newId(facility) + ".txt")).toAbsolutePath());
+        throw new UnsupportedOperationException("Reports are planned for Phase 2 and are not part of the current 50% implementation.");
     }
 }

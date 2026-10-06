@@ -17,35 +17,18 @@ public final class ReportGenerator {
         return reportTitle + " - " + kind + "\nGenerated: " + generatedDate + "\n\n";
     }
     public String generateInventoryReport(String facility, Inventory inventory) {
-        StringBuilder result = new StringBuilder(header("Inventory")).append("Facility: ").append(facility).append("\nGroup | Usable | Unreserved | Low stock (<10)\n");
-        for (String group : Validation.BLOOD_GROUPS) {
-            int free = inventory.getStockForGroup(group, generatedDate);
-            result.append(group).append(" | ").append(inventory.searchBloodGroup(group, generatedDate).size()).append(" | ").append(free).append(" | ").append(free < 10).append('\n');
-        }
-        result.append("\nUnit | Group | Quantity | Collected | Expires | Status | Lab | Reservation | Patient\n");
-        inventory.getBloodUnits().forEach(u -> result.append(u).append('\n'));
-        return result.toString();
+        throw new UnsupportedOperationException("Report generation is planned for Phase 2 and is not part of the current 50% implementation.");
     }
     public String generateDonationReport(List<BloodDonation> donations) {
-        StringBuilder result = new StringBuilder(header("Donations"));
-        donations.forEach(d -> {
-            result.append(d).append('\n'); d.getUnits().forEach(u -> result.append("  ").append(u).append('\n'));
-        });
-        return result.toString();
+        throw new UnsupportedOperationException("Report generation is planned for Phase 2 and is not part of the current 50% implementation.");
     }
     public String generateRequestReport(List<BloodRequest> requests) {
-        StringBuilder result = new StringBuilder(header("Requests"));
-        requests.forEach(r -> result.append(r).append('\n'));
-        return result.toString();
+        throw new UnsupportedOperationException("Report generation is planned for Phase 2 and is not part of the current 50% implementation.");
     }
     public String generateTransferReport(List<BloodTransfer> transfers) {
-        StringBuilder result = new StringBuilder(header("Transfers"));
-        transfers.forEach(t -> result.append(t).append('\n'));
-        return result.toString();
+        throw new UnsupportedOperationException("Report generation is planned for Phase 2 and is not part of the current 50% implementation.");
     }
     public Path exportReport(String report, Path filePath) throws IOException {
-        Files.createDirectories(filePath.toAbsolutePath().getParent());
-        Files.writeString(filePath, report, StandardCharsets.UTF_8, StandardOpenOption.CREATE_NEW);
-        return filePath;
+        throw new UnsupportedOperationException("Report export is planned for Phase 2 and is not part of the current 50% implementation.");
     }
 }

@@ -49,31 +49,22 @@ public final class BloodRequest extends Transaction {
         return inventory.available(bloodGroup, getTransactionId(), today).size() >= unitsRequested;
     }
     public void route(String bank) {
-        Validation.require(status.equals("PENDING"), "Only pending requests can be routed.");
-        bankId = Validation.id(bank);
+        throw new UnsupportedOperationException("Request routing and shortage transfer are planned for Phase 2 and is not part of the current 50% implementation.");
     }
     public void ready() {
-        Validation.require(status.equals("PENDING") || status.equals("APPROVED"), "Request cannot become ready.");
-        status = "READY";
+        throw new UnsupportedOperationException("Request readiness transitions are planned for Phase 2 and is not part of the current 50% implementation.");
     }
     public void approveRequest() {
-        Validation.require(status.equals("PENDING"), "Only pending requests can be approved.");
-        status = "APPROVED";
+        throw new UnsupportedOperationException("Request approval is planned for Phase 2 and is not part of the current 50% implementation.");
     }
     public void rejectRequest(String reason) {
-        Validation.require(status.equals("PENDING") || status.equals("APPROVED"), "Request cannot be rejected in this state.");
-        this.reason = Validation.text(reason, "Rejection reason");
-        status = "REJECTED";
+        throw new UnsupportedOperationException("Request rejection is planned for Phase 2 and is not part of the current 50% implementation.");
     }
     public void reopen() {
-        Validation.require(status.equals("READY") || status.equals("PENDING"), "Only pending or ready requests can be rechecked.");
-        status = "PENDING";
-        bankId = null;
+        throw new UnsupportedOperationException("Request reopening is planned for Phase 2 and is not part of the current 50% implementation.");
     }
     public void fulfill(List<BloodUnit> units) {
-        Validation.require(status.equals("READY") && units.size() == unitsRequested, "Request is not ready to issue.");
-        units.forEach(u -> issuedUnitIds.add(u.getBloodUnitId()));
-        status = "FULFILLED";
+        throw new UnsupportedOperationException("Request fulfillment is planned for Phase 2 and is not part of the current 50% implementation.");
     }
     @Override public String toString() {
         return super.toString() + " | Patient: " + patientId + " | Hospital: " + hospitalId + " | " + bloodGroup + " | Qty: " + unitsRequested + " | " + urgency + " | Bank: " + bankId + " | " + reason + " | Issued: " + issuedUnitIds;

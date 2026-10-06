@@ -1,5 +1,7 @@
 # Blood Bank Management System
 
+> **Implementation Status**: Current milestone implements approximately 50% of the proposed Blood Bank Management System. The current implementation covers authentication, donor registration, blood donation, laboratory validation, donation registration, blood-bank inventory, patient creation, blood-request creation, and basic local availability checking. Hospital blood transfer, reservation/fulfillment, blood issue, advanced alerts, reporting, and failure/recovery workflows are planned for Phase 2.
+
 A Java 17 console application implementing the donor → laboratory → blood bank → hospital → patient workflows in [BLOOD_BANK_SYSTEM_PRD.md](BLOOD_BANK_SYSTEM_PRD.md). No external libraries, database, or build-tool installation is required.
 
 ## Build, run, and test

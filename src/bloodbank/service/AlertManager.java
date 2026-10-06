@@ -11,21 +11,10 @@ public final class AlertManager {
         expiryAlertDays = days;
     }
     public List<String> checkLowStock(String facility, Inventory inventory, LocalDate today) {
-        List<String> alerts = new ArrayList<>();
-        for (String group : Validation.BLOOD_GROUPS) {
-            int free = inventory.getStockForGroup(group, today);
-            if (free < lowStockThreshold) alerts.add(generateAlert(facility + ": " + group + " has " + free + " unreserved units (threshold " + lowStockThreshold + ").", "LOW STOCK"));
-        }
-        return alerts;
+        throw new UnsupportedOperationException("Low-stock alert system is planned for Phase 2 and is not part of the current 50% implementation.");
     }
     public List<String> checkExpiry(String facility, Inventory inventory, LocalDate today) {
-        List<String> alerts = new ArrayList<>();
-        for (BloodUnit unit : inventory.getBloodUnits()) {
-            if (unit.getStatus().equals("ISSUED") || unit.getStatus().equals("REJECTED")) continue;
-            if (unit.isExpired(today)) alerts.add(generateAlert(facility + ": " + unit.getBloodUnitId() + " expired on " + unit.getExpiryDate(), "EXPIRED"));
-            else if (!unit.getExpiryDate().isAfter(today.plusDays(expiryAlertDays))) alerts.add(generateAlert(facility + ": " + unit.getBloodUnitId() + " expires " + unit.getExpiryDate(), "EXPIRING"));
-        }
-        return alerts;
+        throw new UnsupportedOperationException("Near-expiry alert system is planned for Phase 2 and is not part of the current 50% implementation.");
     }
     public String generateAlert(String message, String severity) {
         return severity + " | " + message;
