@@ -41,10 +41,18 @@ public final class FileManager implements AutoCloseable {
 
     public static SystemState copy(SystemState data) {
         try {
-            ByteArrayOutputStream bytes = new ByteArrayOutputStream();
-            try (ObjectOutputStream out = new ObjectOutputStream(bytes)) { out.writeObject(data); }
-            try (ObjectInputStream in = new ObjectInputStream(new ByteArrayInputStream(bytes.toByteArray()))) { return (SystemState) in.readObject(); }
-        } catch (IOException | ClassNotFoundException ex) { throw new IllegalStateException("Could not copy application state.", ex); }
+            Path tmp = Files.createTempDirectory("bbm-copy-");
+            try {
+                FileManager tmp_fm = new FileManager(tmp);
+                tmp_fm.saveData(data);
+                return tmp_fm.loadData();
+            } finally {
+                // clean up temp files
+                try (var stream = Files.walk(tmp)) {
+                    stream.sorted(Comparator.reverseOrder()).forEach(p -> p.toFile().delete());
+                }
+            }
+        } catch (IOException ex) { throw new IllegalStateException("Could not copy application state.", ex); }
     }
 
     public SystemState loadData() throws IOException {

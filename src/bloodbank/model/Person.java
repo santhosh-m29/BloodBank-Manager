@@ -1,8 +1,6 @@
 package bloodbank.model;
-import java.io.Serializable;
 import bloodbank.utility.*;
-public abstract class Person implements Serializable {
-    private static final long serialVersionUID = 1L;
+public abstract class Person {
     private final String personId;
     private String name;
     private int age;

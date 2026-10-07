@@ -1,10 +1,8 @@
 package bloodbank.model;
-import java.io.Serializable;
 import java.time.LocalDate;
 import bloodbank.utility.Validation;
 /** One uniquely traceable physical unit; donations containing N units create N records. */
-public final class BloodUnit implements Serializable {
-    private static final long serialVersionUID = 1L;
+public final class BloodUnit {
     private final String bloodUnitId, bloodGroup, donationId;
     private int quantity = 1;
     private final LocalDate collectionDate, expiryDate;

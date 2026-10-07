@@ -1,12 +1,10 @@
 package bloodbank.service;
 
-import java.io.Serializable;
 import java.util.*;
 import bloodbank.model.*;
 import bloodbank.utility.Validation;
 
-public final class SystemState implements Serializable {
-    private static final long serialVersionUID = 1L;
+public final class SystemState {
     boolean hospitalStarterStockAdded;
     public final LinkedHashMap<String, Person> people = new LinkedHashMap<>();
     public final LinkedHashMap<String, Organization> facilities = new LinkedHashMap<>();

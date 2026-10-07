@@ -1,8 +1,6 @@
 package bloodbank.model;
-import java.io.Serializable;
 import bloodbank.utility.Validation;
-public abstract class Organization implements Serializable {
-    private static final long serialVersionUID = 1L;
+public abstract class Organization {
     private final String organizationId;
     private String organizationName, address, contactNumber;
     private final Inventory inventory = new Inventory();

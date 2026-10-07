@@ -2,7 +2,6 @@ package bloodbank.model;
 import bloodbank.service.BloodBankService;
 import bloodbank.utility.Validation;
 public final class BloodBankAdmin extends Staff {
-    private static final long serialVersionUID = 1L;
     private final String adminLevel;
     public BloodBankAdmin(String id, String name, int age, String gender, String phone, String address, String employee, String facility, String level) {
         super(id, name, age, gender, phone, address, employee, facility);

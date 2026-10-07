@@ -2,7 +2,6 @@ package bloodbank.model;
 import java.util.List;
 import bloodbank.utility.Validation;
 public final class Patient extends Person {
-    private static final long serialVersionUID = 1L;
     private final String bloodGroup, disease, doctorName, hospitalId;
     private final int unitsRequired;
     private boolean completed;

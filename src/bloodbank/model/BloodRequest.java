@@ -3,7 +3,6 @@ import java.time.LocalDate;
 import java.util.*;
 import bloodbank.utility.Validation;
 public final class BloodRequest extends Transaction {
-    private static final long serialVersionUID = 1L;
     private static final HashMap<String, Integer> PRIORITY = new HashMap<>(Map.of(
         "CRITICAL", 1,
         "EMERGENCY", 1,

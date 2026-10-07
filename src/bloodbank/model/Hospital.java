@@ -3,7 +3,6 @@ import java.util.*;
 import bloodbank.service.BloodBankService;
 import bloodbank.utility.Validation;
 public final class Hospital extends Organization {
-    private static final long serialVersionUID = 1L;
     private final String hospitalType, emergencyContact;
     private final ArrayList<HospitalStaff> staffs = new ArrayList<>();
     public Hospital(String id, String name, String address, String phone, String type, String emergency) {

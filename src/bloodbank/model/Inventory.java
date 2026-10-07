@@ -1,10 +1,8 @@
 package bloodbank.model;
-import java.io.Serializable;
 import java.time.LocalDate;
 import java.util.*;
 import bloodbank.utility.Validation;
-public final class Inventory implements Serializable {
-    private static final long serialVersionUID = 1L;
+public final class Inventory {
     private final ArrayList<BloodUnit> bloodUnits = new ArrayList<>();
     public List<BloodUnit> getBloodUnits() {
         return List.copyOf(bloodUnits);
@@ -46,7 +44,8 @@ public final class Inventory implements Serializable {
         Map<Batch, Integer> quantities = new LinkedHashMap<>();
         for (BloodUnit unit : bloodUnits) {
             if ("ISSUED".equalsIgnoreCase(unit.getStatus())) continue;
-            String status = unit.isExpired(today) && !unit.getStatus().equals("REJECTED") ? "EXPIRED" : unit.getStatus();
+            if ("REJECTED".equalsIgnoreCase(unit.getStatus())) continue;
+            String status = unit.isExpired(today) ? "EXPIRED" : unit.getStatus();
             Batch batch = new Batch(donorLabel.apply(unit.getDonationId()), unit.getBloodGroup(), unit.getCollectionDate(), unit.getExpiryDate(), status);
             quantities.merge(batch, unit.getQuantity(), Integer::sum);
         }

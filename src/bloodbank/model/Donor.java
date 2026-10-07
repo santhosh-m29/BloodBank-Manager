@@ -4,7 +4,6 @@ import java.util.List;
 import bloodbank.service.BloodBankService;
 import bloodbank.utility.Validation;
 public final class Donor extends Person {
-    private static final long serialVersionUID = 1L;
     private final String bloodGroup;
     private double haemoglobin;
     private double weight;

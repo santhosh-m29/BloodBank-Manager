@@ -1,9 +1,7 @@
 package bloodbank.model;
-import java.io.Serializable;
 import java.time.LocalDate;
 import bloodbank.utility.Validation;
-public abstract class Transaction implements Serializable {
-    private static final long serialVersionUID = 1L;
+public abstract class Transaction {
     private final String transactionId;
     private final LocalDate transactionDate;
     protected String status;

@@ -1,7 +1,6 @@
 package bloodbank.model;
 import bloodbank.utility.Validation;
 public final class BloodBank extends Organization {
-    private static final long serialVersionUID = 1L;
     private final String managerName;
     public BloodBank(String id, String name, String address, String phone, String manager) {
         super(id, name, address, phone);

@@ -3,7 +3,6 @@ import java.time.LocalDate;
 import java.util.*;
 import bloodbank.utility.Validation;
 public final class BloodTransfer extends Transaction {
-    private static final long serialVersionUID = 1L;
     private final String sourceFacilityId, destinationFacilityId, bloodGroup, requestId;
     private final int unitsTransferred;
     private final ArrayList<String> unitIds = new ArrayList<>();
