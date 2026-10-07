@@ -4,19 +4,28 @@ import java.util.*;
 import bloodbank.utility.Validation;
 public final class BloodRequest extends Transaction {
     private static final long serialVersionUID = 1L;
-    private static final HashMap<String, Integer> PRIORITY = new HashMap<>(Map.of("CRITICAL", 1, "HIGH", 2, "MEDIUM", 3, "LOW", 4));
+    private static final HashMap<String, Integer> PRIORITY = new HashMap<>(Map.of(
+        "CRITICAL", 1,
+        "EMERGENCY", 1,
+        "HIGH", 2,
+        "MEDIUM", 3,
+        "LOW", 4,
+        "NORMAL", 4
+    ));
     private final String patientId, hospitalId, bloodGroup, urgency;
     private final int unitsRequested;
     private String bankId, reason = "";
     private final ArrayList<String> issuedUnitIds = new ArrayList<>();
     public BloodRequest(String id, LocalDate date, String patient, String hospital, String group, int quantity, String urgency) {
-        super(id, date, "PENDING");
+        this(id, date, "PENDING", patient, hospital, group, quantity, urgency);
+    }
+    public BloodRequest(String id, LocalDate date, String status, String patient, String hospital, String group, int quantity, String urgency) {
+        super(id, date, status != null ? status : "PENDING");
         patientId = Validation.id(patient);
         hospitalId = Validation.id(hospital);
         bloodGroup = Validation.bloodGroup(group);
         unitsRequested = Validation.positive(quantity);
-        Validation.require(PRIORITY.containsKey(urgency), "Urgency must be CRITICAL, HIGH, MEDIUM or LOW.");
-        this.urgency = urgency;
+        this.urgency = urgency != null ? urgency.toUpperCase(Locale.ROOT) : "NORMAL";
     }
     public String getPatientId() {
         return patientId;
@@ -46,7 +55,7 @@ public final class BloodRequest extends Transaction {
         return List.copyOf(issuedUnitIds);
     }
     public boolean checkAvailability(Inventory inventory, LocalDate today) {
-        return inventory.available(bloodGroup, getTransactionId(), today).size() >= unitsRequested;
+        return inventory.getStockForGroup(bloodGroup, today) >= unitsRequested;
     }
     public void route(String bank) {
         throw new UnsupportedOperationException("Request routing and shortage transfer are planned for Phase 2 and is not part of the current 50% implementation.");
@@ -64,9 +73,16 @@ public final class BloodRequest extends Transaction {
         throw new UnsupportedOperationException("Request reopening is planned for Phase 2 and is not part of the current 50% implementation.");
     }
     public void fulfill(List<BloodUnit> units) {
-        throw new UnsupportedOperationException("Request fulfillment is planned for Phase 2 and is not part of the current 50% implementation.");
+        Validation.require(status.equals("PENDING") && units.stream().mapToInt(BloodUnit::getQuantity).sum() == unitsRequested, "Issue quantity must match the pending request.");
+        Validation.require(units.stream().allMatch(u -> u.getStatus().equals("ISSUED") && patientId.equals(u.getIssuedTo())), "Units were not issued to this patient.");
+        units.forEach(u -> issuedUnitIds.add(u.getBloodUnitId()));
+        status = "COMPLETED";
     }
+    public void restoreIssuedUnitIds(String value) {
+        if (value != null && !value.isBlank()) issuedUnitIds.addAll(List.of(value.split(";")));
+    }
+
     @Override public String toString() {
-        return super.toString() + " | Patient: " + patientId + " | Hospital: " + hospitalId + " | " + bloodGroup + " | Qty: " + unitsRequested + " | " + urgency + " | Bank: " + bankId + " | " + reason + " | Issued: " + issuedUnitIds;
+        return super.toString() + " | Patient: " + patientId + " | Hospital: " + hospitalId + " | " + bloodGroup + " | Qty: " + unitsRequested + " | " + urgency;
     }
 }

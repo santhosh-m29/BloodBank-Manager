@@ -13,14 +13,16 @@ public final class Validation {
         return value.trim();
     }
     public static String id(String value) {
-        require(value != null && value.matches("[A-Za-z0-9_-]{1,100}"), "Invalid ID or username.");
+        require(value != null && value.matches("[A-Za-z0-9_-]{1,100}"), "Invalid ID.");
         return value;
     }
     public static boolean validateBloodGroup(String value) {
         return BLOOD_GROUPS.contains(value);
     }
     public static boolean validatePhoneNumber(String value) {
-        return value != null && value.matches("[0-9]{10}");
+        if (value == null) return false;
+        String digits = value.replaceAll("[^0-9]", "");
+        return digits.length() >= 7 && digits.length() <= 15;
     }
     public static boolean validateAge(int value) {
         return value >= 0 && value <= 120;

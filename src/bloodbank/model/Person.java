@@ -9,13 +9,9 @@ public abstract class Person implements Serializable {
     private String gender;
     private String phoneNumber;
     private String address;
-    private final String username;
-    private String passwordHash;
-    protected Person(String id, String name, int age, String gender, String phone, String address, String username, String password) {
+    protected Person(String id, String name, int age, String gender, String phone, String address) {
         this.personId = Validation.id(id);
-        this.username = Validation.id(username);
         updateDetails(name, age, gender, phone, address);
-        passwordHash = Passwords.hash(password);
     }
     public final void updateDetails(String name, int age, String gender, String phone, String address) {
         Validation.text(name, "Name");
@@ -29,13 +25,8 @@ public abstract class Person implements Serializable {
         this.phoneNumber = phone;
         this.address = address.trim();
     }
-    public final boolean authenticate(String password) {
-        return Passwords.matches(password, passwordHash);
-    }
-    public final void changePassword(String oldPassword, String newPassword) {
-        Validation.require(authenticate(oldPassword), "Current password is incorrect.");
-        passwordHash = Passwords.hash(newPassword);
-    }
+
+
     public String getPersonId() {
         return personId;
     }
@@ -54,9 +45,7 @@ public abstract class Person implements Serializable {
     public String getAddress() {
         return address;
     }
-    public String getUsername() {
-        return username;
-    }
+
     public abstract String getRole();
     public String getDetails() {
         return personId + " | " + name + " | Age: " + age + " | " + gender + " | Phone: " + phoneNumber + " | " + address;

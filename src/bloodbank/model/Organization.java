@@ -30,6 +30,9 @@ public abstract class Organization implements Serializable {
     public String getContactNumber() {
         return contactNumber;
     }
+    public String getPhoneNumber() {
+        return contactNumber;
+    }
     public Inventory getInventory() {
         return inventory;
     }

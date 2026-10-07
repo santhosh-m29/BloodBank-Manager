@@ -1,2 +1,1 @@
-HOSP001,St. Jude Hospital,456 Medical Dr,555-0111,Private,911
-HOSP002,Grace Clinic,789 Care Blvd,555-0222,Public,100
+HOSP001,St. Jude Hospital,456 Medical Drive,8888888888,Private,112

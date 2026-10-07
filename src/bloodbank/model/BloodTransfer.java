@@ -8,12 +8,15 @@ public final class BloodTransfer extends Transaction {
     private final int unitsTransferred;
     private final ArrayList<String> unitIds = new ArrayList<>();
     public BloodTransfer(String id, LocalDate date, String source, String destination, String group, int quantity, String request) {
-        super(id, date, "PENDING");
+        this(id, date, "PENDING", source, destination, group, quantity, request);
+    }
+    public BloodTransfer(String id, LocalDate date, String status, String source, String destination, String group, int quantity, String request) {
+        super(id, date, status != null ? status : "PENDING");
         sourceFacilityId = Validation.id(source);
         destinationFacilityId = Validation.id(destination);
         bloodGroup = Validation.bloodGroup(group);
         unitsTransferred = Validation.positive(quantity);
-        requestId = Validation.id(request);
+        this.requestId = request != null && !request.isBlank() ? request : "REQ001";
     }
     public String getSourceFacilityId() {
         return sourceFacilityId;

@@ -9,8 +9,8 @@ public final class Donor extends Person {
     private double haemoglobin;
     private double weight;
     private LocalDate lastDonationDate;
-    public Donor(String id, String name, int age, String gender, String phone, String address, String username, String password, String group, double hb, double weight) {
-        super(id, name, age, gender, phone, address, username, password);
+    public Donor(String id, String name, int age, String gender, String phone, String address, String group, double hb, double weight) {
+        super(id, name, age, gender, phone, address);
         bloodGroup = Validation.bloodGroup(group);
         updateMeasurements(hb, weight);
     }
@@ -29,6 +29,9 @@ public final class Donor extends Person {
     public LocalDate getLastDonationDate() {
         return lastDonationDate;
     }
+    public void setLastDonationDate(LocalDate lastDonationDate) {
+        this.lastDonationDate = lastDonationDate;
+    }
     public void updateMeasurements(double hb, double weight) {
         Validation.positive(hb);
         Validation.positive(weight);
@@ -42,8 +45,8 @@ public final class Donor extends Person {
         Validation.require(isEligible(date), "Donor does not meet the configured eligibility rules.");
         lastDonationDate = date;
     }
-    public BloodDonation donate(BloodBankService service, String bankId, int quantity) {
-        return service.donate(bankId, quantity);
+    public BloodDonation donate(BloodBankService service, int quantity) {
+        return service.donate(quantity);
     }
     public String viewProfile(List<BloodDonation> history, LocalDate today) {
         String donations = history.isEmpty() ? "No donations yet." : history.stream()

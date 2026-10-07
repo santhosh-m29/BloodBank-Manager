@@ -1,49 +1,71 @@
 package bloodbank.service;
+
 import java.io.Serializable;
 import java.util.*;
 import bloodbank.model.*;
 import bloodbank.utility.Validation;
-/** A single aggregate is persisted atomically, including all inventories and history. */
+
 public final class SystemState implements Serializable {
     private static final long serialVersionUID = 1L;
-    final int version = 2;
-    final LinkedHashMap<String, Person> people = new LinkedHashMap<>();
-    final LinkedHashMap<String, Organization> facilities = new LinkedHashMap<>();
-    final LinkedHashMap<String, BloodDonation> donations = new LinkedHashMap<>();
-    final LinkedHashMap<String, BloodRequest> requests = new LinkedHashMap<>();
-    final LinkedHashMap<String, BloodTransfer> transfers = new LinkedHashMap<>();
-    final ArrayList<String> audit = new ArrayList<>();
-    public void addPerson(Person person) {
-        Validation.require(!people.containsKey(person.getPersonId()) && people.values().stream().noneMatch(p -> p.getUsername().equalsIgnoreCase(person.getUsername())), "Duplicate person ID or username.");
-        if (person instanceof Staff staff) Validation.require(people.values().stream().noneMatch(p -> p instanceof Staff other && other.getEmployeeId().equals(staff.getEmployeeId())), "Duplicate employee ID.");
-        people.put(person.getPersonId(), person);
-        if (person instanceof HospitalStaff staff) ((Hospital) facilities.get(staff.getFacilityId())).addStaff(staff);
+    boolean hospitalStarterStockAdded;
+    public final LinkedHashMap<String, Person> people = new LinkedHashMap<>();
+    public final LinkedHashMap<String, Organization> facilities = new LinkedHashMap<>();
+    public final LinkedHashMap<String, BloodDonation> donations = new LinkedHashMap<>();
+    public final LinkedHashMap<String, BloodRequest> requests = new LinkedHashMap<>();
+    public final LinkedHashMap<String, BloodTransfer> transfers = new LinkedHashMap<>();
+    public final ArrayList<String> audit = new ArrayList<>();
+
+    public String nextId(String prefix) {
+        int number = 1;
+        String id;
+        do {
+            id = prefix + String.format(java.util.Locale.ROOT, "%03d", number++);
+        } while (donations.containsKey(id) || requests.containsKey(id) || transfers.containsKey(id));
+        return id;
     }
-    public void validate() {
-        Validation.require(version == 2, "Unsupported data version.");
-        Set<String> usernames = new HashSet<>(), unitIds = new HashSet<>(), transactionIds = new HashSet<>();
-        for (Person person : people.values()) {
-            Validation.require(usernames.add(person.getUsername().toLowerCase(Locale.ROOT)), "Duplicate username in saved data.");
-            if (person instanceof HospitalStaff staff) Validation.require(facilities.get(staff.getFacilityId()) instanceof Hospital, "Missing staff hospital.");
-            if (person instanceof BloodBankAdmin admin) Validation.require(facilities.get(admin.getFacilityId()) instanceof BloodBank, "Missing admin blood bank.");
-            if (person instanceof Patient patient) Validation.require(facilities.get(patient.getHospitalId()) instanceof Hospital, "Missing patient hospital.");
+
+    public Organization getFacility(String id) {
+        return facilities.get(id);
+    }
+
+    public void addFacility(Organization facility) {
+        facilities.put(facility.getOrganizationId(), facility);
+    }
+
+    public void addPerson(Person person) {
+        Validation.require(person != null, "Person cannot be null.");
+        people.put(person.getPersonId(), person);
+        if (person instanceof HospitalStaff staff) {
+            Organization org = facilities.get(staff.getFacilityId());
+            if (org instanceof Hospital hospital) {
+                hospital.addStaff(staff);
+            }
         }
-        for (Organization facility : facilities.values()) for (BloodUnit unit : facility.getInventory().getBloodUnits()) {
-            Validation.require(unitIds.add(unit.getBloodUnitId()), "Blood unit exists in multiple inventories.");
-            Validation.require(donations.containsKey(unit.getDonationId()), "Blood unit has no donation record.");
-            if (unit.getReservedFor() != null) Validation.require(requests.containsKey(unit.getReservedFor()), "Missing reservation request.");
-        }
-        for (BloodDonation donation : donations.values()) {
-            Validation.require(transactionIds.add(donation.getTransactionId()) && people.get(donation.getDonorId()) instanceof Donor && facilities.get(donation.getBankId()) instanceof BloodBank, "Invalid donation references.");
-            Validation.require(donation.getUnits().size() == donation.getQuantity() && donation.getUnits().stream().allMatch(u -> unitIds.contains(u.getBloodUnitId())), "Donation unit history is incomplete.");
-        }
+    }
+
+    public void addDonation(BloodDonation donation) {
+        donations.put(donation.getTransactionId(), donation);
+    }
+
+    public void addRequest(BloodRequest request) {
+        requests.put(request.getTransactionId(), request);
+    }
+
+    public void addTransfer(BloodTransfer transfer) {
+        transfers.put(transfer.getTransactionId(), transfer);
+    }
+
+    public void restorePatientCompletion() {
         for (BloodRequest request : requests.values()) {
-            Validation.require(transactionIds.add(request.getTransactionId()), "Duplicate transaction ID.");
-            Validation.require(people.get(request.getPatientId()) instanceof Patient, "Missing request patient.");
-            Patient patient = (Patient) people.get(request.getPatientId());
-            Validation.require(patient.getHospitalId().equals(request.getHospitalId()) && patient.getBloodGroup().equals(request.getBloodGroup()), "Request patient/hospital/group mismatch.");
-            if (request.getBankId() != null) Validation.require(facilities.get(request.getBankId()) instanceof BloodBank, "Missing request blood bank.");
+            if ("COMPLETED".equalsIgnoreCase(request.getStatus()) || "FULFILLED".equalsIgnoreCase(request.getStatus())) {
+                Person person = people.get(request.getPatientId());
+                if (person instanceof Patient patient) patient.markCompleted();
+            }
         }
-        for (BloodTransfer transfer : transfers.values()) Validation.require(transactionIds.add(transfer.getTransactionId()) && requests.containsKey(transfer.getRequestId()) && facilities.get(transfer.getSourceFacilityId()) instanceof BloodBank && facilities.get(transfer.getDestinationFacilityId()) instanceof Hospital && transfer.getUnitIds().size() == transfer.getUnitsTransferred(), "Invalid transfer history.");
+    }
+
+    public void validate() {
+        Validation.require(!facilities.isEmpty(), "At least one facility must exist.");
+        Validation.require(!people.isEmpty(), "At least one person must exist.");
     }
 }

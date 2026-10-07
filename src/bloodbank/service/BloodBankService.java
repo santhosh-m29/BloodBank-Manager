@@ -5,35 +5,43 @@ import java.util.*;
 import java.util.function.Function;
 import bloodbank.model.*;
 import bloodbank.utility.*;
-/** The authorization and transaction boundary used by every interactive operation. */
+/** The role workflow and transaction boundary used by every interactive operation. */
 public final class BloodBankService {
     private SystemState state;
     private final FileManager files;
     private final Clock clock;
-    private final LoginManager login = new LoginManager();
+    private String selectedRole;
+    private String selectedPatientId;
     public BloodBankService(SystemState state, FileManager files, Clock clock) {
+        state.restorePatientCompletion();
         state.validate();
         this.state = FileManager.copy(state);
         this.files = files;
         this.clock = clock;
+        if (DemoData.addHospitalStarterStock(this.state, today())) {
+            try { files.saveData(this.state); }
+            catch (IOException ex) { throw new IllegalStateException("Could not save hospital starter stock.", ex); }
+        }
     }
     public LocalDate today() {
         return LocalDate.now(clock);
     }
-    public static String newId(String prefix) {
-        return prefix + "_" + UUID.randomUUID().toString();
+    public void selectRole(String role) {
+        selectedRole = null;
+        selectedPatientId = null;
+        Validation.require(Set.of("DONOR", "PATIENT", "HOSPITAL", "BLOOD_BANK").contains(role), "Invalid role choice.");
+        selectedRole = role;
     }
-    public boolean login(String username, String password) {
-        return login.authenticateUser(state, username, password);
-    }
-    public void logout() {
-        login.logoutUser();
-    }
+
+    public void clearRole() { selectedRole = null; selectedPatientId = null; }
+
     public Person currentUser() {
-        return login.current(FileManager.copy(state));
+        return actor(FileManager.copy(state));
     }
     private Person actor(SystemState s) {
-        return login.current(s);
+        Validation.require(selectedRole != null, "Choose a role first.");
+        if ("PATIENT".equals(selectedRole) && selectedPatientId != null) return found(s.people.get(selectedPatientId), "Patient");
+        return s.people.values().stream().filter(p -> p.getRole().equals(selectedRole)).findFirst().orElseThrow(() -> new IllegalStateException("Selected role is missing."));
     }
     private HospitalStaff staff(SystemState s) {
         Person p = actor(s);
@@ -60,7 +68,15 @@ public final class BloodBankService {
         return (Patient) p;
     }
     private BloodRequest request(SystemState s, String id) {
-        return found(s.requests.get(id), "Request");
+        String searchId = id == null ? "" : id.trim();
+        BloodRequest r = s.requests.get(searchId);
+        if (r == null) {
+            r = s.requests.values().stream()
+                    .filter(item -> item.getTransactionId().equalsIgnoreCase(searchId))
+                    .findFirst()
+                    .orElse(null);
+        }
+        return found(r, "Request");
     }
     private BloodRequest bankRequest(SystemState s, String id, BloodBankAdmin a) {
         BloodRequest r = request(s, id);
@@ -69,7 +85,15 @@ public final class BloodBankService {
         return r;
     }
     private BloodDonation donation(SystemState s, String id, BloodBankAdmin a) {
-        BloodDonation d = found(s.donations.get(id), "Donation");
+        String searchId = id == null ? "" : id.trim();
+        BloodDonation d = s.donations.get(searchId);
+        if (d == null) {
+            d = s.donations.values().stream()
+                    .filter(item -> item.getTransactionId().equalsIgnoreCase(searchId))
+                    .findFirst()
+                    .orElse(null);
+        }
+        Validation.require(d != null, "Donation not found with ID: " + id);
         Validation.require(d.getBankId().equals(a.getFacilityId()), "Donation belongs to another blood bank.");
         return d;
     }
@@ -88,11 +112,7 @@ public final class BloodBankService {
         state = FileManager.copy(next);
         return result;
     }
-    public void changePassword(String oldPassword, String newPassword) {
-        commit("PASSWORD_CHANGED", s -> {
-            login.changePassword(s, oldPassword, newPassword); return null;
-        });
-    }
+
     public void updateProfile(String name, int age, String gender, String phone, String address) {
         commit("PROFILE_UPDATED", s -> {
             actor(s).updateDetails(name, age, gender, phone, address); return null;
@@ -103,46 +123,60 @@ public final class BloodBankService {
             Validation.require(actor(s) instanceof Donor, "Only donors can update donor measurements."); ((Donor) actor(s)).updateMeasurements(hb, weight); return null;
         });
     }
-    public BloodDonation donate(String bankId, int quantity) {
-        return commit("DONATION_COLLECTED", s -> {
-            Validation.require(actor(s) instanceof Donor, "Only donors can initiate a donation."); Validation.require(s.facilities.get(bankId) instanceof BloodBank, "Blood bank not found."); Donor donor = (Donor) actor(s); Validation.positive(quantity); donor.recordCollection(today()); BloodDonation d = new BloodDonation(newId("DON"), today(), donor.getPersonId(), donor.getBloodGroup(), quantity, bankId); d.recordDonation(inventory(s, bankId)); s.donations.put(d.getTransactionId(), d); return d;
+    public BloodDonation donate(int quantity) {
+        return commit("DONATION_AUTOMATICALLY_TESTED", s -> {
+            Validation.require(actor(s) instanceof Donor, "Choose Donor to donate blood.");
+            Donor donor = (Donor) actor(s);
+            String bankId = s.facilities.values().stream().filter(f -> f instanceof BloodBank).findFirst().orElseThrow().getOrganizationId();
+            BloodDonation donation = new BloodDonation(s.nextId("D"), today(), donor.getPersonId(), donor.getBloodGroup(), quantity, bankId);
+            donation.recordDonation(inventory(s, bankId));
+            donation.test(donor, today());
+            if (donation.getStatus().equals("TEST_PASSED")) donor.recordCollection(today());
+            s.donations.put(donation.getTransactionId(), donation);
+            return donation;
         });
     }
-    public void labTest(String donationId, boolean passed, String note) {
-        commit("LAB_TEST " + donationId, s -> {
-            BloodBankAdmin a = admin(s, true); BloodDonation d = donation(s, donationId, a); Validation.require(d.getUnits().stream().noneMatch(u -> u.isExpired(today())), "Donation has expired."); d.test(passed, note, a.getPersonId()); return null;
-        });
-    }
+
+
     public void registerDonation(String donationId) {
         commit("DONATION_REGISTERED " + donationId, s -> {
             BloodBankAdmin a = admin(s, true); donation(s, donationId, a).updateInventory(inventory(s, a.getFacilityId()), today(), a.getPersonId()); return null;
         });
     }
-    public void createPatient(Patient patient) {
-        commit("PATIENT_CREATED " + patient.getPersonId(), s -> {
-            HospitalStaff h = staff(s); Validation.require(h.getFacilityId().equals(patient.getHospitalId()), "Cannot create patients for another hospital."); s.addPerson(patient); return null;
-        });
-    }
-    public void registerDonor(Donor donor) {
-        commit("DONOR_CREATED " + donor.getPersonId(), s -> {
-            admin(s, true); s.addPerson(donor); return null;
-        });
-    }
-    public void registerFacility(Organization facility) {
-        commit("FACILITY_CREATED " + facility.getOrganizationId(), s -> {
-            Validation.require(admin(s, true).getAdminLevel().equals("SUPER"), "Only SUPER administrators can create facilities."); Validation.require(!s.facilities.containsKey(facility.getOrganizationId()) && facility.getInventory().getBloodUnits().isEmpty(), "Duplicate facility or nonempty initial inventory."); s.facilities.put(facility.getOrganizationId(), facility); return null;
-        });
-    }
-    public void registerStaff(Staff person) {
-        commit("STAFF_CREATED " + person.getPersonId(), s -> {
-            Validation.require(admin(s, true).getAdminLevel().equals("SUPER"), "Only SUPER administrators can create staff."); Validation.require((person instanceof HospitalStaff && s.facilities.get(person.getFacilityId()) instanceof Hospital) || (person instanceof BloodBankAdmin && s.facilities.get(person.getFacilityId()) instanceof BloodBank), "Invalid staff facility."); s.addPerson(person); return null;
-        });
-    }
-    public BloodRequest requestBlood(String patientId, int units, String urgency) {
+
+
+
+
+    public BloodRequest requestBlood(String patientId, String urgency) {
         return commit("REQUEST_CREATED " + patientId, s -> {
-            HospitalStaff h = staff(s); Patient p = patient(s, patientId, h.getFacilityId()); BloodRequest r = new BloodRequest(newId("REQ"), today(), patientId, h.getFacilityId(), p.getBloodGroup(), units, urgency); s.requests.put(r.getTransactionId(), r); return r;
+            HospitalStaff h = staff(s);
+            Patient p = patient(s, patientId, h.getFacilityId());
+            Validation.require(!p.getStatus().equals("COMPLETED"), "This patient has already received blood and is COMPLETED.");
+            Validation.require(Set.of("CRITICAL", "HIGH", "MEDIUM", "LOW").contains(urgency), "Invalid urgency.");
+            BloodRequest r = new BloodRequest(s.nextId("R"), today(), patientId, h.getFacilityId(), p.getBloodGroup(), p.getUnitsRequired(), urgency);
+            s.requests.put(r.getTransactionId(), r);
+            return r;
         });
     }
+    public Patient createPatient(String name, int age, String gender, String phone, String address, String group, String reason, String doctor, int units) {
+        return commit("PATIENT_CREATED", s -> {
+            HospitalStaff h = staff(s);
+            int n = 1;
+            while (s.people.containsKey(String.format(Locale.ROOT, "PAT%03d", n))) n++;
+            Patient p = new Patient(String.format(Locale.ROOT, "PAT%03d", n), name, age, gender, phone, address, group, reason, doctor, units, h.getFacilityId());
+            s.addPerson(p);
+            return p;
+        });
+    }
+    public List<Patient> patientChoices() {
+        Validation.require("PATIENT".equals(selectedRole), "Choose the Patient role first.");
+        return FileManager.copy(state).people.values().stream().filter(p -> p instanceof Patient).map(p -> (Patient)p).toList();
+    }
+    public void selectPatient(String id) {
+        Validation.require("PATIENT".equals(selectedRole) && state.people.get(id) instanceof Patient, "Invalid patient selection.");
+        selectedPatientId = id;
+    }
+
     public int shortage(String requestId) {
         throw new UnsupportedOperationException("Shortage calculation and reservations are planned for Phase 2 and are not part of the current 50% implementation.");
     }
@@ -159,13 +193,35 @@ public final class BloodBankService {
         throw new UnsupportedOperationException("Blood transfer is planned for Phase 2 and is not part of the current 50% implementation.");
     }
     public void issueBlood(String requestId) {
-        throw new UnsupportedOperationException("Issuing blood to patients is planned for Phase 2 and is not part of the current 50% implementation.");
+        commit("BLOOD_ISSUED " + requestId, s -> {
+            HospitalStaff h = staff(s);
+            BloodRequest r = request(s, requestId);
+            Patient recipient = patient(s, r.getPatientId(), h.getFacilityId());
+            Validation.require(!recipient.getStatus().equals("COMPLETED"), "This patient has already received blood and is COMPLETED.");
+            Validation.require(r.getStatus().equals("PENDING"), "Only pending requests can be issued; this request is already processed.");
+            Inventory local = inventory(s, h.getFacilityId());
+            Validation.require(local.getStockForGroup(r.getBloodGroup(), today()) >= r.getUnitsRequested(), "Insufficient hospital stock. Request remains PENDING; blood-bank transfers are not implemented yet.");
+            List<BloodUnit> issued = new ArrayList<>();
+            int remaining = r.getUnitsRequested();
+            for (BloodUnit unit : local.available(r.getBloodGroup(), null, today())) {
+                if (remaining == 0) break;
+                int quantity = Math.min(remaining, unit.getQuantity());
+                BloodUnit portion = unit.takeForIssue(quantity, r.getTransactionId(), r.getPatientId(), today());
+                if (portion != unit) local.addBloodUnit(portion);
+                issued.add(portion);
+                remaining -= quantity;
+            }
+            r.fulfill(issued);
+            recipient.markCompleted();
+            return null;
+        });
     }
+
     private List<BloodRequest> sortedRequests(SystemState s) {
         return s.requests.values().stream().sorted(Comparator.comparingInt(BloodRequest::priorityDispatch).thenComparing(BloodRequest::getTransactionDate)).toList();
     }
     private boolean canReadRequest(Person p, BloodRequest r) {
-        return p instanceof Patient && p.getPersonId().equals(r.getPatientId()) || p instanceof HospitalStaff h && h.getFacilityId().equals(r.getHospitalId()) || p instanceof BloodBankAdmin a && a.getFacilityId().equals(r.getBankId());
+        return p instanceof Patient && p.getPersonId().equals(r.getPatientId()) || p instanceof HospitalStaff h && h.getFacilityId().equals(r.getHospitalId()) || p instanceof BloodBankAdmin;
     }
     private void authorizeRequestRead(SystemState s, BloodRequest r) {
         Validation.require(canReadRequest(actor(s), r), "Request access denied.");
@@ -185,6 +241,9 @@ public final class BloodBankService {
         HospitalStaff h = staff(copy);
         return copy.people.values().stream().filter(p -> p instanceof Patient patient && patient.getHospitalId().equals(h.getFacilityId())).map(p -> (Patient) p).toList();
     }
+    public List<Patient> patientsAwaitingBlood() {
+        return patients().stream().filter(p -> !p.getStatus().equals("COMPLETED")).toList();
+    }
     public List<BloodTransfer> transfers() {
         throw new UnsupportedOperationException("Blood transfer history is planned for Phase 2 and is not part of the current 50% implementation.");
     }
@@ -193,6 +252,12 @@ public final class BloodBankService {
         Validation.require(p instanceof Staff, "Inventory access denied.");
         SystemState copy = FileManager.copy(state);
         return inventory(copy, ((Staff) p).getFacilityId());
+    }
+    public List<String> inventoryRows() {
+        return ownInventory().summaryRows(id -> {
+            BloodDonation donation = state.donations.get(id);
+            return donation == null ? "Opening stock" : donation.getDonorId();
+        }, today());
     }
     public Map<String, String> facilities() {
         actor(state);

@@ -25,8 +25,8 @@ public final class Hospital extends Organization {
         Validation.require(staffs.stream().noneMatch(s -> s.getPersonId().equals(staff.getPersonId())), "Duplicate staff.");
         staffs.add(staff);
     }
-    public BloodRequest sendBloodRequest(BloodBankService service, String patient, int units, String urgency) {
-        return service.requestBlood(patient, units, urgency);
+    public BloodRequest sendBloodRequest(BloodBankService service, String patient, String urgency) {
+        return service.requestBlood(patient, urgency);
     }
     public List<BloodRequest> viewRequestHistory(List<BloodRequest> requests) {
         return requests.stream().filter(r -> r.getHospitalId().equals(getOrganizationId())).toList();
