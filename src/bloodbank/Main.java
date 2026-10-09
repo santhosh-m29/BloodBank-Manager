@@ -1,5 +1,9 @@
 package bloodbank;
 
+import bloodbank.model.*;
+import bloodbank.service.*;
+import bloodbank.ui.Menu;
+import bloodbank.utility.FileManager;
 import java.io.File;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -66,6 +70,25 @@ public class Main {
         donors = FileManager.loadDonors(DONORS_FILE);
         patients = FileManager.loadPatients(PATIENTS_FILE);
         bloodBanks = FileManager.loadBloodBanks(BLOODBANKS_FILE);
+        boolean bloodBanksChanged = false;
+        if (!hasBloodBank("BB001")) {
+            bloodBanks.add(new BloodBank("BB001", "City Blood Center", "100 Central Ave", "555-0100", "Dr. Adams", inventory));
+            bloodBanksChanged = true;
+        }
+        if (!hasBloodBank("BB002")) {
+            bloodBanks.add(new BloodBank("BB002", "Northside Blood Bank", "25 North Ave", "555-0102", "Dr. Patel", inventory));
+            bloodBanksChanged = true;
+        }
+        if (!hasBloodBank("BB003")) {
+            bloodBanks.add(new BloodBank("BB003", "Southside Blood Bank", "50 South Ave", "555-0103", "Dr. Rao", inventory));
+            bloodBanksChanged = true;
+        }
+        for (BloodBank bloodBank : bloodBanks) {
+            bloodBank.setInventory(inventory);
+        }
+        if (bloodBanksChanged) {
+            saveBloodBanksToFile();
+        }
         hospitals = FileManager.loadHospitals(HOSPITALS_FILE);
         donations = FileManager.loadDonations(DONATIONS_FILE);
         requests = FileManager.loadRequests(REQUESTS_FILE);
@@ -74,12 +97,7 @@ public class Main {
         // Reconstruct hospital structures and route blood units
         fm.loadAllBloodUnits(BLOODUNITS_FILE);
 
-        // Seed default demo data if lists are empty or insufficient
-        if (bloodBanks.isEmpty()) {
-            bloodBanks.add(new BloodBank("BB001", "City Blood Center", "100 Central Ave", "555-0100", "Dr. Adams", inventory));
-            saveBloodBanksToFile();
-        }
-        
+        // Seed default demo hospitals if the saved list is too small.
         if (hospitals.size() < 2) {
             hospitals.clear();
             hospitals.add(new Hospital("HOSP001", "St. Jude Hospital", "456 Medical Dr", "555-0111", "Private", "911", new Inventory()));
@@ -90,17 +108,22 @@ public class Main {
             hospitalStaffs.clear();
         }
 
-        boolean hasDefaultAdmin = false;
-        for (BloodBankAdmin a : admins) {
-            if ("admin".equalsIgnoreCase(a.getUsername())) {
-                hasDefaultAdmin = true;
-                break;
-            }
+        boolean adminsChanged = false;
+        if (!hasAdminForBloodBank("BB001")) {
+            admins.add(new BloodBankAdmin("ADM001", "City Blood Bank Admin", 35, "Male", "9999999999", "City Blood Center", "admin", "admin123", "BLOOD_BANK_ADMIN", "EMP001", "BB001"));
+            adminsChanged = true;
         }
-        if (!hasDefaultAdmin) {
-            admins.add(new BloodBankAdmin("ADM001", "System Administrator", 35, "Male", "9999999999", "Blood Bank HQ", "admin", "admin123", "BLOOD_BANK_ADMIN", "EMP001", "BB001", "SuperAdmin"));
+        if (!hasAdminForBloodBank("BB002")) {
+            admins.add(new BloodBankAdmin("ADM002", "Northside Blood Bank Admin", 36, "Female", "9999999998", "Northside Blood Bank", "admin2", "admin123", "BLOOD_BANK_ADMIN", "EMP002", "BB002"));
+            adminsChanged = true;
+        }
+        if (!hasAdminForBloodBank("BB003")) {
+            admins.add(new BloodBankAdmin("ADM003", "Southside Blood Bank Admin", 37, "Male", "9999999997", "Southside Blood Bank", "admin3", "admin123", "BLOOD_BANK_ADMIN", "EMP003", "BB003"));
+            adminsChanged = true;
+        }
+        if (adminsChanged) {
             saveAdminsToFile();
-            System.out.println("Default admin credentials initialized: admin/admin123");
+            System.out.println("Three blood bank admin accounts initialized.");
         }
 
         if (hospitalStaffs.size() < 2) {
@@ -112,13 +135,13 @@ public class Main {
             saveHospitalStaffsToFile();
             
             // Map staff back to hospitals
-            hospitals.get(0).setStaffs(new HospitalStaff[]{staff1});
-            hospitals.get(1).setStaffs(new HospitalStaff[]{staff2});
+            hospitals.get(0).getStaffs().add(staff1);
+            hospitals.get(1).getStaffs().add(staff2);
             saveHospitalsToFile();
         }
 
         if (donors.isEmpty()) {
-            donors.add(new Donor("DON001", "Alice Smith", 28, "Female", "1234567890", "456 Oak St", "donor", "donor123", "DONOR", "A+", 13.5, 55.0, ""));
+            donors.add(new Donor("DON001", "Alice Smith", 28, "Female", "1234567890", "456 Oak St", "donor", "donor123", "DONOR", "A+", 13.5, 55.0, LocalDate.now().minusDays(120).toString()));
             saveDonorsToFile();
         }
 
@@ -127,7 +150,7 @@ public class Main {
             savePatientsToFile();
         }
 
-        // Seed starting blood stock if all inventories are empty
+        // Start with empty central stock and basic local hospital stock.
         boolean anyStock = !inventory.getBloodUnits().isEmpty();
         for (Hospital h : hospitals) {
             if (!h.getInventory().getBloodUnits().isEmpty()) {
@@ -136,14 +159,14 @@ public class Main {
             }
         }
         if (!anyStock) {
-            // Central Bank Stock
-            inventory.addBloodUnit(new BloodUnit("UNIT001", "A+", 5, LocalDate.now().toString(), LocalDate.now().plusDays(42).toString(), "AVAILABLE"));
-            inventory.addBloodUnit(new BloodUnit("UNIT002", "O-", 3, LocalDate.now().toString(), LocalDate.now().plusDays(42).toString(), "AVAILABLE"));
-            inventory.addBloodUnit(new BloodUnit("UNIT003", "B+", 4, LocalDate.now().toString(), LocalDate.now().minusDays(2).toString(), "AVAILABLE")); // Expired unit for testing
-            
-            // Hospital Local Stock
-            hospitals.get(0).getInventory().addBloodUnit(new BloodUnit("UNIT004", "A+", 2, LocalDate.now().toString(), LocalDate.now().plusDays(42).toString(), "AVAILABLE"));
-            
+            for (Hospital h : hospitals) {
+                for (int i = 1; i <= 5; i++) {
+                    String date = LocalDate.now().toString();
+                    String expiry = LocalDate.now().plusDays(42).toString();
+                    h.getInventory().addBloodUnit(new BloodUnit(h.getOrganizationId() + "_A_" + i, "A+", 1, date, expiry, "AVAILABLE"));
+                    h.getInventory().addBloodUnit(new BloodUnit(h.getOrganizationId() + "_B_" + i, "B+", 1, date, expiry, "AVAILABLE"));
+                }
+            }
             fm.saveAllBloodUnits(BLOODUNITS_FILE);
         }
 
@@ -155,12 +178,11 @@ public class Main {
                     matchedStaff.add(hs);
                 }
             }
-            h.setStaffs(matchedStaff.toArray(new HospitalStaff[0]));
+            h.getStaffs().clear();
+            h.getStaffs().addAll(matchedStaff);
         }
 
         System.out.println("System Initialization Complete.");
-        
-        // Run checks
         alertManager.checkLowStock();
         alertManager.checkExpiry();
     }
@@ -211,5 +233,19 @@ public class Main {
 
     public static void saveBloodUnitsToFile() {
         new FileManager().saveAllBloodUnits(BLOODUNITS_FILE);
+    }
+
+    private static boolean hasBloodBank(String bankId) {
+        for (BloodBank bloodBank : bloodBanks) {
+            if (bloodBank.getOrganizationId().equalsIgnoreCase(bankId)) return true;
+        }
+        return false;
+    }
+
+    private static boolean hasAdminForBloodBank(String bankId) {
+        for (BloodBankAdmin admin : admins) {
+            if (admin.getFacilityId().equalsIgnoreCase(bankId)) return true;
+        }
+        return false;
     }
 }
