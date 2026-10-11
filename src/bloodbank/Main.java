@@ -8,8 +8,10 @@ import java.io.File;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Scanner;
 
 public class Main {
+    public static final Scanner sc = new Scanner(System.in);
     // Shared state variables
     public static List<BloodBankAdmin> admins = new ArrayList<>();
     public static List<HospitalStaff> hospitalStaffs = new ArrayList<>();

@@ -3,7 +3,6 @@ package bloodbank.service;
 import bloodbank.Main;
 import bloodbank.model.*;
 import bloodbank.utility.Validation;
-import java.util.Scanner;
 
 public class LoginManager {
     private String username;
@@ -24,50 +23,96 @@ public class LoginManager {
         return false;
     }
 
-    public void registerUser(Scanner scanner) {
+    public void registerUser() {
         System.out.println("\n--- User Registration ---");
         System.out.println("Select Registration Role:");
         System.out.println("1. Donor\n2. Patient\n3. Hospital Staff");
-        int roleChoice = readInt(scanner, "Enter choice (1-3): ");
-        String name = ask(scanner, "Enter Full Name: ");
-        int age = readInt(scanner, "Enter Age: ");
-        String gender = ask(scanner, "Enter Gender: ");
-        String phone = ask(scanner, "Enter Phone Number: ");
+        System.out.print("Enter choice (1-3): ");
+        int roleChoice;
+        try {
+            roleChoice = Integer.parseInt(Main.sc.nextLine().trim());
+        } catch (NumberFormatException e) {
+            System.out.println("Invalid choice. Registration cancelled.");
+            return;
+        }
+        System.out.print("Enter Full Name: ");
+        String name = Main.sc.nextLine().trim();
+        System.out.print("Enter Age: ");
+        int age;
+        try {
+            age = Integer.parseInt(Main.sc.nextLine().trim());
+        } catch (NumberFormatException e) {
+            System.out.println("Invalid age. Registration cancelled.");
+            return;
+        }
+        System.out.print("Enter Gender: ");
+        String gender = Main.sc.nextLine().trim();
+        System.out.print("Enter Phone Number: ");
+        String phone = Main.sc.nextLine().trim();
         while (!Validation.validatePhoneNumber(phone)) {
             System.out.println("Invalid phone (must be 10 digits).");
-            phone = ask(scanner, "Enter Phone Number: ");
+            System.out.print("Enter Phone Number: ");
+            phone = Main.sc.nextLine().trim();
         }
-        String address = ask(scanner, "Enter Address: ");
-        String username = ask(scanner, "Choose Username: ");
+        System.out.print("Enter Address: ");
+        String address = Main.sc.nextLine().trim();
+        System.out.print("Choose Username: ");
+        String username = Main.sc.nextLine().trim();
         while (isUsernameTaken(username)) {
             System.out.println("Username is already taken. Try another.");
-            username = ask(scanner, "Choose Username: ");
+            System.out.print("Choose Username: ");
+            username = Main.sc.nextLine().trim();
         }
-        String password = ask(scanner, "Choose Password: ");
+        System.out.print("Choose Password: ");
+        String password = Main.sc.nextLine().trim();
 
         if (roleChoice == 1) {
-            String group = readBloodGroup(scanner, "Blood Group (e.g. A+, O-): ");
-            double haemoglobin = readDouble(scanner, "Hemoglobin level (g/dL): ");
-            double weight = readDouble(scanner, "Weight (kg): ");
+            String group = readBloodGroup("Blood Group (e.g. A+, O-): ");
+            System.out.print("Hemoglobin level (g/dL): ");
+            double haemoglobin;
+            try {
+                haemoglobin = Double.parseDouble(Main.sc.nextLine().trim());
+            } catch (NumberFormatException e) {
+                System.out.println("Invalid hemoglobin level. Registration cancelled.");
+                return;
+            }
+            System.out.print("Weight (kg): ");
+            double weight;
+            try {
+                weight = Double.parseDouble(Main.sc.nextLine().trim());
+            } catch (NumberFormatException e) {
+                System.out.println("Invalid weight. Registration cancelled.");
+                return;
+            }
             String id = Main.nextId("DON");
             Main.donors.add(new Donor(id, name, age, gender, phone, address,
                     username, password, "DONOR", group, haemoglobin, weight, ""));
             Main.saveDonorsToFile();
             System.out.println("Donor registered successfully! Your ID is: " + id);
         } else if (roleChoice == 2) {
-            String group = readBloodGroup(scanner, "Blood Group Required (e.g. B+, AB-): ");
-            String disease = ask(scanner, "Disease/Reason for Request: ");
-            String doctor = ask(scanner, "Referring Doctor: ");
-            int units = readInt(scanner, "Units Required: ");
-            String hospitalId = chooseHospital(scanner);
+            String group = readBloodGroup("Blood Group Required (e.g. B+, AB-): ");
+            System.out.print("Disease/Reason for Request: ");
+            String disease = Main.sc.nextLine().trim();
+            System.out.print("Referring Doctor: ");
+            String doctor = Main.sc.nextLine().trim();
+            System.out.print("Units Required: ");
+            int units;
+            try {
+                units = Integer.parseInt(Main.sc.nextLine().trim());
+            } catch (NumberFormatException e) {
+                System.out.println("Invalid number of units. Registration cancelled.");
+                return;
+            }
+            String hospitalId = chooseHospital();
             String id = Main.nextId("PAT");
             Main.patients.add(new Patient(id, name, age, gender, phone, address,
                     username, password, "PATIENT", group, disease, doctor, units, hospitalId));
             Main.savePatientsToFile();
             System.out.println("Patient registered successfully! Your ID is: " + id);
         } else if (roleChoice == 3) {
-            String hospitalId = chooseHospital(scanner);
-            String department = ask(scanner, "Enter Department: ");
+            String hospitalId = chooseHospital();
+            System.out.print("Enter Department: ");
+            String department = Main.sc.nextLine().trim();
             String id = Main.nextId("STF");
             HospitalStaff staff = new HospitalStaff(id, name, age, gender, phone, address,
                     username, password, "HOSPITAL_STAFF", Main.nextId("EMP"), hospitalId, department);
@@ -84,40 +129,24 @@ public class LoginManager {
         }
     }
 
-    private String chooseHospital(Scanner scanner) {
+    private String chooseHospital() {
         System.out.println("Available Hospitals:");
         for (Hospital hospital : Main.hospitals) {
             System.out.println(" - " + hospital.getOrganizationId() + ": " + hospital.getOrganizationName());
         }
-        return ask(scanner, "Enter Hospital ID: ");
+        System.out.print("Enter Hospital ID: ");
+        return Main.sc.nextLine().trim();
     }
 
-    private String readBloodGroup(Scanner scanner, String prompt) {
-        String group = ask(scanner, prompt);
+    private String readBloodGroup(String prompt) {
+        System.out.print(prompt);
+        String group = Main.sc.nextLine().trim();
         while (!Validation.validateBloodGroup(group)) {
             System.out.println("Invalid blood group.");
-            group = ask(scanner, prompt);
+            System.out.print(prompt);
+            group = Main.sc.nextLine().trim();
         }
         return group;
-    }
-
-    private String ask(Scanner scanner, String prompt) {
-        System.out.print(prompt);
-        return scanner.nextLine().trim();
-    }
-
-    private int readInt(Scanner scanner, String prompt) {
-        while (true) {
-            try { return Integer.parseInt(ask(scanner, prompt)); }
-            catch (NumberFormatException e) { System.out.println("Invalid input. Please enter an integer."); }
-        }
-    }
-
-    private double readDouble(Scanner scanner, String prompt) {
-        while (true) {
-            try { return Double.parseDouble(ask(scanner, prompt)); }
-            catch (NumberFormatException e) { System.out.println("Invalid input. Please enter a decimal number."); }
-        }
     }
 
     public String getUsername() { return username; }

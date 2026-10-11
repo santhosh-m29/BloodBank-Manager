@@ -5,10 +5,9 @@ import bloodbank.utility.Validation;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
-import java.util.Scanner;
 
 public class BloodBankAdmin extends Staff {
-    public void approvePassedDonations(Scanner scanner) {
+    public void approvePassedDonations() {
         ArrayList<BloodDonation> pendingDonations = new ArrayList<>();
         for (BloodDonation donation : Main.donations) {
             if ("PENDING_APPROVAL".equalsIgnoreCase(donation.getStatus())) {
@@ -28,17 +27,26 @@ public class BloodBankAdmin extends Staff {
                     + " | Group: " + donation.getBloodGroup()
                     + " | Units: " + donation.getQuantity());
         }
-        int index = readInt(scanner, "Select donation (1-" + pendingDonations.size() + "): ") - 1;
+        System.out.print("Select donation (1-" + pendingDonations.size() + "): ");
+        int index;
+        try {
+            index = Integer.parseInt(Main.sc.nextLine().trim()) - 1;
+        } catch (NumberFormatException e) {
+            System.out.println("Invalid selection.");
+            return;
+        }
         if (index < 0 || index >= pendingDonations.size()) {
             System.out.println("Invalid selection.");
             return;
         }
 
         BloodDonation donation = pendingDonations.get(index);
-        String answer = ask(scanner, "Approve this passed donation? (YES/NO): ");
+        System.out.print("Approve this passed donation? (YES/NO): ");
+        String answer = Main.sc.nextLine().trim();
         while (!"YES".equalsIgnoreCase(answer) && !"NO".equalsIgnoreCase(answer)) {
             System.out.println("Please enter YES or NO.");
-            answer = ask(scanner, "Approve this passed donation? (YES/NO): ");
+            System.out.print("Approve this passed donation? (YES/NO): ");
+            answer = Main.sc.nextLine().trim();
         }
         if ("NO".equalsIgnoreCase(answer)) {
             donation.setStatus("REJECTED");
@@ -67,7 +75,7 @@ public class BloodBankAdmin extends Staff {
         return requests;
     }
 
-    public void reviewHospitalRestockRequests(Scanner scanner) {
+    public void reviewHospitalRestockRequests() {
         System.out.println("\n--- Approve/Reject Hospital Stock Requests ---");
         ArrayList<BloodRequest> requests = getPendingRestockRequests();
         if (requests.isEmpty()) {
@@ -80,16 +88,25 @@ public class BloodBankAdmin extends Staff {
                     + " | Hospital: " + request.getHospitalId()
                     + " | Group: " + request.getBloodGroup() + " | Units: " + request.getUnitsRequested());
         }
-        int index = readInt(scanner, "Select request (1-" + requests.size() + "): ") - 1;
+        System.out.print("Select request (1-" + requests.size() + "): ");
+        int index;
+        try {
+            index = Integer.parseInt(Main.sc.nextLine().trim()) - 1;
+        } catch (NumberFormatException e) {
+            System.out.println("Invalid selection.");
+            return;
+        }
         if (index < 0 || index >= requests.size()) {
             System.out.println("Invalid selection.");
             return;
         }
         BloodRequest request = requests.get(index);
-        String answer = ask(scanner, "Approve this hospital stock request? (YES/NO): ");
+        System.out.print("Approve this hospital stock request? (YES/NO): ");
+        String answer = Main.sc.nextLine().trim();
         while (!"YES".equalsIgnoreCase(answer) && !"NO".equalsIgnoreCase(answer)) {
             System.out.println("Please enter YES or NO.");
-            answer = ask(scanner, "Approve this hospital stock request? (YES/NO): ");
+            System.out.print("Approve this hospital stock request? (YES/NO): ");
+            answer = Main.sc.nextLine().trim();
         }
         if ("NO".equalsIgnoreCase(answer)) {
             request.rejectRequest();
@@ -116,7 +133,7 @@ public class BloodBankAdmin extends Staff {
         Main.saveBloodUnitsToFile();
     }
 
-    public void viewHospitalRestockHistory(Scanner scanner) {
+    public void viewHospitalRestockHistory() {
         if (Main.hospitals.isEmpty()) {
             System.out.println("No hospitals are registered.");
             return;
@@ -125,7 +142,14 @@ public class BloodBankAdmin extends Staff {
             Hospital hospital = Main.hospitals.get(i);
             System.out.println((i + 1) + ". " + hospital.getOrganizationId() + " - " + hospital.getOrganizationName());
         }
-        int selected = readInt(scanner, "Select hospital: ") - 1;
+        System.out.print("Select hospital: ");
+        int selected;
+        try {
+            selected = Integer.parseInt(Main.sc.nextLine().trim()) - 1;
+        } catch (NumberFormatException e) {
+            System.out.println("Invalid selection.");
+            return;
+        }
         if (selected < 0 || selected >= Main.hospitals.size()) {
             System.out.println("Invalid selection.");
             return;
@@ -133,37 +157,37 @@ public class BloodBankAdmin extends Staff {
         Main.hospitals.get(selected).viewRestockHistory();
     }
 
-    public void manageFacilities(Scanner scanner) {
+    public void manageFacilities() {
         System.out.println("\n--- Manage Hospitals ---");
         System.out.println("1. View Registered Hospitals");
         System.out.println("2. Register New Hospital");
-        int choice = readInt(scanner, "Enter choice (1-2): ");
+        System.out.print("Enter choice (1-2): ");
+        int choice;
+        try {
+            choice = Integer.parseInt(Main.sc.nextLine().trim());
+        } catch (NumberFormatException e) {
+            System.out.println("Invalid choice.");
+            return;
+        }
         if (choice == 1) {
             for (Hospital hospital : Main.hospitals) hospital.displayOrganization();
         } else if (choice == 2) {
             String id = Main.nextId("HOSP");
-            String name = ask(scanner, "Hospital Name: ");
-            String address = ask(scanner, "Address: ");
-            String contact = ask(scanner, "Contact Number: ");
-            String type = ask(scanner, "Type (Private/Public): ");
-            String emergencyContact = ask(scanner, "Emergency Contact: ");
+            System.out.print("Hospital Name: ");
+            String name = Main.sc.nextLine().trim();
+            System.out.print("Address: ");
+            String address = Main.sc.nextLine().trim();
+            System.out.print("Contact Number: ");
+            String contact = Main.sc.nextLine().trim();
+            System.out.print("Type (Private/Public): ");
+            String type = Main.sc.nextLine().trim();
+            System.out.print("Emergency Contact: ");
+            String emergencyContact = Main.sc.nextLine().trim();
             Main.hospitals.add(new Hospital(id, name, address, contact, type, emergencyContact, new Inventory()));
             Main.saveHospitalsToFile();
             System.out.println("Hospital registered successfully! ID: " + id);
         } else {
             System.out.println("Invalid choice.");
-        }
-    }
-
-    private String ask(Scanner scanner, String prompt) {
-        System.out.print(prompt);
-        return scanner.nextLine().trim();
-    }
-
-    private int readInt(Scanner scanner, String prompt) {
-        while (true) {
-            try { return Integer.parseInt(ask(scanner, prompt)); }
-            catch (NumberFormatException e) { System.out.println("Invalid input. Please enter an integer."); }
         }
     }
 
@@ -174,14 +198,13 @@ public class BloodBankAdmin extends Staff {
 
     @Override
     public void updateDetails() {
-        Scanner sc = new Scanner(System.in);
         System.out.println("Updating details for Admin: " + name);
         System.out.print("Enter New Name (Current: " + name + "): ");
-        String newName = sc.nextLine().trim();
+        String newName = Main.sc.nextLine().trim();
         if (!newName.isEmpty()) this.name = newName;
 
         System.out.print("Enter New Age (Current: " + age + "): ");
-        String ageStr = sc.nextLine().trim();
+        String ageStr = Main.sc.nextLine().trim();
         if (!ageStr.isEmpty()) {
             try {
                 this.age = Integer.parseInt(ageStr);
@@ -189,17 +212,17 @@ public class BloodBankAdmin extends Staff {
         }
 
         System.out.print("Enter New Gender (Current: " + gender + "): ");
-        String newGender = sc.nextLine().trim();
+        String newGender = Main.sc.nextLine().trim();
         if (!newGender.isEmpty()) this.gender = newGender;
 
         System.out.print("Enter New Phone (Current: " + phoneNumber + "): ");
-        String phone = sc.nextLine().trim();
+        String phone = Main.sc.nextLine().trim();
         if (!phone.isEmpty() && Validation.validatePhoneNumber(phone)) {
             this.phoneNumber = phone;
         }
 
         System.out.print("Enter New Address (Current: " + address + "): ");
-        String newAddr = sc.nextLine().trim();
+        String newAddr = Main.sc.nextLine().trim();
         if (!newAddr.isEmpty()) this.address = newAddr;
         
         System.out.println("Admin details updated successfully.");

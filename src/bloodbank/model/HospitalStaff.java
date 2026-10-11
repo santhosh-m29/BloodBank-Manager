@@ -6,7 +6,6 @@ import bloodbank.utility.Validation;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Scanner;
 
 public class HospitalStaff extends Staff {
     private String department;
@@ -21,31 +20,57 @@ public class HospitalStaff extends Staff {
     public String getDepartment() { return department; }
     public void setDepartment(String department) { this.department = department; }
 
-    public Patient createPatient(Scanner scanner) {
+    public Patient createPatient() {
         System.out.println("\n--- Register Patient at " + facilityId + " ---");
-        String name = ask(scanner, "Enter Full Name: ");
-        int age = askInt(scanner, "Enter Age: ");
-        String gender = ask(scanner, "Enter Gender: ");
-        String phone = ask(scanner, "Enter Phone Number: ");
+        System.out.print("Enter Full Name: ");
+        String name = Main.sc.nextLine().trim();
+        System.out.print("Enter Age: ");
+        int age;
+        try {
+            age = Integer.parseInt(Main.sc.nextLine().trim());
+        } catch (NumberFormatException e) {
+            System.out.println("Invalid age. Patient was not registered.");
+            return null;
+        }
+        System.out.print("Enter Gender: ");
+        String gender = Main.sc.nextLine().trim();
+        System.out.print("Enter Phone Number: ");
+        String phone = Main.sc.nextLine().trim();
         while (!Validation.validatePhoneNumber(phone)) {
             System.out.println("Invalid phone (must be 10 digits).");
-            phone = ask(scanner, "Enter Phone Number: ");
+            System.out.print("Enter Phone Number: ");
+            phone = Main.sc.nextLine().trim();
         }
-        String address = ask(scanner, "Enter Address: ");
-        String username = ask(scanner, "Choose Username: ");
+        System.out.print("Enter Address: ");
+        String address = Main.sc.nextLine().trim();
+        System.out.print("Choose Username: ");
+        String username = Main.sc.nextLine().trim();
         while (Main.loginManager.isUsernameTaken(username)) {
             System.out.println("Username is already taken. Try another.");
-            username = ask(scanner, "Choose Username: ");
+            System.out.print("Choose Username: ");
+            username = Main.sc.nextLine().trim();
         }
-        String password = ask(scanner, "Choose Password: ");
-        String bloodGroup = ask(scanner, "Blood Group Required (e.g. B+, AB-): ");
+        System.out.print("Choose Password: ");
+        String password = Main.sc.nextLine().trim();
+        System.out.print("Blood Group Required (e.g. B+, AB-): ");
+        String bloodGroup = Main.sc.nextLine().trim();
         while (!Validation.validateBloodGroup(bloodGroup)) {
             System.out.println("Invalid blood group.");
-            bloodGroup = ask(scanner, "Blood Group: ");
+            System.out.print("Blood Group: ");
+            bloodGroup = Main.sc.nextLine().trim();
         }
-        String disease = ask(scanner, "Disease/Reason for Request: ");
-        String doctor = ask(scanner, "Referring Doctor: ");
-        int units = askInt(scanner, "Units Required: ");
+        System.out.print("Disease/Reason for Request: ");
+        String disease = Main.sc.nextLine().trim();
+        System.out.print("Referring Doctor: ");
+        String doctor = Main.sc.nextLine().trim();
+        System.out.print("Units Required: ");
+        int units;
+        try {
+            units = Integer.parseInt(Main.sc.nextLine().trim());
+        } catch (NumberFormatException e) {
+            System.out.println("Invalid number of units. Patient was not registered.");
+            return null;
+        }
 
         String id = Main.nextId("PAT");
         Patient patient = new Patient(id, name, age, gender, phone, address, username, password,
@@ -56,7 +81,7 @@ public class HospitalStaff extends Staff {
         return patient;
     }
 
-    public BloodRequest requestBlood(Scanner scanner) {
+    public BloodRequest requestBlood() {
         System.out.println("\n--- Create Blood Request ---");
         System.out.println("Patients registered at this hospital:");
         ArrayList<Patient> hospitalPatients = new ArrayList<>();
@@ -72,7 +97,8 @@ public class HospitalStaff extends Staff {
             System.out.println("No patients without a completed blood request are available at this hospital.");
             return null;
         }
-        String patientId = ask(scanner, "Enter Patient ID: ");
+        System.out.print("Enter Patient ID: ");
+        String patientId = Main.sc.nextLine().trim();
         Patient selected = null;
         for (Patient patient : hospitalPatients) {
             if (patient.getPersonId().equals(patientId)) selected = patient;
@@ -90,10 +116,23 @@ public class HospitalStaff extends Staff {
             return null;
         }
         System.out.println("Urgency: 1. LOW  2. NORMAL  3. HIGH  4. CRITICAL");
-        int urgencyChoice = askInt(scanner, "Choose urgency (1-4): ");
+        System.out.print("Choose urgency (1-4): ");
+        int urgencyChoice;
+        try {
+            urgencyChoice = Integer.parseInt(Main.sc.nextLine().trim());
+        } catch (NumberFormatException e) {
+            System.out.println("Invalid urgency. Request was not created.");
+            return null;
+        }
         while (urgencyChoice < 1 || urgencyChoice > 4) {
             System.out.println("Choose a number from 1 to 4.");
-            urgencyChoice = askInt(scanner, "Choose urgency (1-4): ");
+            System.out.print("Choose urgency (1-4): ");
+            try {
+                urgencyChoice = Integer.parseInt(Main.sc.nextLine().trim());
+            } catch (NumberFormatException e) {
+                System.out.println("Invalid urgency. Request was not created.");
+                return null;
+            }
         }
         String urgency = "NORMAL";
         if (urgencyChoice == 1) urgency = "LOW";
@@ -128,7 +167,7 @@ public class HospitalStaff extends Staff {
         return false;
     }
 
-    public void issueBlood(Scanner scanner) {
+    public void issueBlood() {
         Hospital hospital = Hospital.findById(facilityId);
         if (hospital == null) return;
         System.out.println("\n--- Issue Blood to Patient ---");
@@ -161,7 +200,14 @@ public class HospitalStaff extends Staff {
                     + request.getBloodGroup() + " | Units: " + request.getUnitsRequested()
                     + " | Priority: " + request.getUrgency());
         }
-        int index = askInt(scanner, "Select Request (1-" + readyRequests.size() + "): ") - 1;
+        System.out.print("Select Request (1-" + readyRequests.size() + "): ");
+        int index;
+        try {
+            index = Integer.parseInt(Main.sc.nextLine().trim()) - 1;
+        } catch (NumberFormatException e) {
+            System.out.println("Invalid selection.");
+            return;
+        }
         if (index < 0 || index >= readyRequests.size()) {
             System.out.println("Invalid selection.");
             return;
@@ -193,14 +239,23 @@ public class HospitalStaff extends Staff {
         Main.saveBloodUnitsToFile();
     }
 
-    public BloodRequest requestRestock(Scanner scanner) {
+    public BloodRequest requestRestock() {
         System.out.println("\n--- Request Restock from Blood Bank ---");
-        String bloodGroup = ask(scanner, "Blood Group to Restock: ");
+        System.out.print("Blood Group to Restock: ");
+        String bloodGroup = Main.sc.nextLine().trim();
         while (!Validation.validateBloodGroup(bloodGroup)) {
             System.out.println("Invalid blood group.");
-            bloodGroup = ask(scanner, "Blood Group to Restock: ");
+            System.out.print("Blood Group to Restock: ");
+            bloodGroup = Main.sc.nextLine().trim();
         }
-        int quantity = askInt(scanner, "Units to Request: ");
+        System.out.print("Units to Request: ");
+        int quantity;
+        try {
+            quantity = Integer.parseInt(Main.sc.nextLine().trim());
+        } catch (NumberFormatException e) {
+            System.out.println("Invalid quantity. Request was not created.");
+            return null;
+        }
         if (quantity <= 0) {
             System.out.println("Units must be positive.");
             return null;
@@ -214,31 +269,15 @@ public class HospitalStaff extends Staff {
         return request;
     }
 
-    private String ask(Scanner scanner, String prompt) {
-        System.out.print(prompt);
-        return scanner.nextLine().trim();
-    }
-
-    private int askInt(Scanner scanner, String prompt) {
-        while (true) {
-            try {
-                return Integer.parseInt(ask(scanner, prompt));
-            } catch (NumberFormatException e) {
-                System.out.println("Invalid input. Please enter an integer.");
-            }
-        }
-    }
-
     @Override
     public void updateDetails() {
-        Scanner sc = new Scanner(System.in);
         System.out.println("Updating details for Hospital Staff: " + name);
         System.out.print("Enter New Name (Current: " + name + "): ");
-        String newName = sc.nextLine().trim();
+        String newName = Main.sc.nextLine().trim();
         if (!newName.isEmpty()) this.name = newName;
 
         System.out.print("Enter New Age (Current: " + age + "): ");
-        String ageStr = sc.nextLine().trim();
+        String ageStr = Main.sc.nextLine().trim();
         if (!ageStr.isEmpty()) {
             try {
                 this.age = Integer.parseInt(ageStr);
@@ -246,21 +285,21 @@ public class HospitalStaff extends Staff {
         }
 
         System.out.print("Enter New Gender (Current: " + gender + "): ");
-        String newGender = sc.nextLine().trim();
+        String newGender = Main.sc.nextLine().trim();
         if (!newGender.isEmpty()) this.gender = newGender;
 
         System.out.print("Enter New Phone (Current: " + phoneNumber + "): ");
-        String phone = sc.nextLine().trim();
+        String phone = Main.sc.nextLine().trim();
         if (!phone.isEmpty() && Validation.validatePhoneNumber(phone)) {
             this.phoneNumber = phone;
         }
 
         System.out.print("Enter New Address (Current: " + address + "): ");
-        String newAddr = sc.nextLine().trim();
+        String newAddr = Main.sc.nextLine().trim();
         if (!newAddr.isEmpty()) this.address = newAddr;
 
         System.out.print("Enter New Department (Current: " + department + "): ");
-        String newDept = sc.nextLine().trim();
+        String newDept = Main.sc.nextLine().trim();
         if (!newDept.isEmpty()) this.department = newDept;
         
         System.out.println("Hospital staff details updated successfully.");

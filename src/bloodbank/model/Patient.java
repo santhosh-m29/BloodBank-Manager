@@ -3,7 +3,6 @@ package bloodbank.model;
 import bloodbank.Main;
 import bloodbank.utility.Validation;
 
-import java.util.Scanner;
 
 public class Patient extends Person {
     private String bloodGroup;
@@ -40,14 +39,13 @@ public class Patient extends Person {
 
     @Override
     public void updateDetails() {
-        Scanner sc = new Scanner(System.in);
         System.out.println("Updating details for Patient: " + name);
         System.out.print("Enter New Name (Current: " + name + "): ");
-        String newName = sc.nextLine().trim();
+        String newName = Main.sc.nextLine().trim();
         if (!newName.isEmpty()) this.name = newName;
 
         System.out.print("Enter New Age (Current: " + age + "): ");
-        String ageStr = sc.nextLine().trim();
+        String ageStr = Main.sc.nextLine().trim();
         if (!ageStr.isEmpty()) {
             try {
                 this.age = Integer.parseInt(ageStr);
@@ -55,29 +53,29 @@ public class Patient extends Person {
         }
 
         System.out.print("Enter New Gender (Current: " + gender + "): ");
-        String newGender = sc.nextLine().trim();
+        String newGender = Main.sc.nextLine().trim();
         if (!newGender.isEmpty()) this.gender = newGender;
 
         System.out.print("Enter New Phone (Current: " + phoneNumber + "): ");
-        String phone = sc.nextLine().trim();
+        String phone = Main.sc.nextLine().trim();
         if (!phone.isEmpty() && Validation.validatePhoneNumber(phone)) {
             this.phoneNumber = phone;
         }
 
         System.out.print("Enter New Address (Current: " + address + "): ");
-        String newAddr = sc.nextLine().trim();
+        String newAddr = Main.sc.nextLine().trim();
         if (!newAddr.isEmpty()) this.address = newAddr;
 
         System.out.print("Enter New Disease (Current: " + disease + "): ");
-        String newDisease = sc.nextLine().trim();
+        String newDisease = Main.sc.nextLine().trim();
         if (!newDisease.isEmpty()) this.disease = newDisease;
 
         System.out.print("Enter New Doctor Name (Current: " + doctorName + "): ");
-        String newDoc = sc.nextLine().trim();
+        String newDoc = Main.sc.nextLine().trim();
         if (!newDoc.isEmpty()) this.doctorName = newDoc;
 
         System.out.print("Enter New Units Required (Current: " + unitsRequired + "): ");
-        String unitsStr = sc.nextLine().trim();
+        String unitsStr = Main.sc.nextLine().trim();
         if (!unitsStr.isEmpty()) {
             try {
                 this.unitsRequired = Integer.parseInt(unitsStr);

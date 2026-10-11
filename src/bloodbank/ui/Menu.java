@@ -3,31 +3,8 @@ package bloodbank.ui;
 import bloodbank.Main;
 import bloodbank.model.*;
 
-import java.util.Scanner;
-
 public class Menu {
-    private Scanner scanner;
-
-    public Menu() {
-        this.scanner = new Scanner(System.in);
-    }
-
-    private String readString(String prompt) {
-        System.out.print(prompt);
-        return scanner.nextLine().trim();
-    }
-
-    private int readInt(String prompt) {
-        while (true) {
-            System.out.print(prompt);
-            String input = scanner.nextLine().trim();
-            try {
-                return Integer.parseInt(input);
-            } catch (NumberFormatException e) {
-                System.out.println("Invalid input. Please enter an integer.");
-            }
-        }
-    }
+    public Menu() {}
 
     public void displayMainMenu() {
         while (true) {
@@ -38,11 +15,18 @@ public class Menu {
             System.out.println("2. Register New User (Donor / Patient / Staff)");
             System.out.println("3. Exit System");
             System.out.println("==================================================");
-            int choiceVal = readInt("Enter choice (1-3): ");
+            System.out.print("Enter choice (1-3): ");
+            int choiceVal;
+            try {
+                choiceVal = Integer.parseInt(Main.sc.nextLine().trim());
+            } catch (NumberFormatException e) {
+                System.out.println("Invalid choice. Enter a number from 1 to 3.");
+                continue;
+            }
             if (choiceVal == 1) {
                 login();
             } else if (choiceVal == 2) {
-                Main.loginManager.registerUser(scanner);
+                Main.loginManager.registerUser();
             } else if (choiceVal == 3) {
                 Main.closeApplication();
                 System.out.println("Goodbye!");
@@ -55,9 +39,10 @@ public class Menu {
 
     private void login() {
         System.out.println("\n--- User Login ---");
-        String username = readString("Enter Username: ");
+        System.out.print("Enter Username: ");
+        String username = Main.sc.nextLine().trim();
         System.out.print("Enter Password: ");
-        String password = scanner.nextLine().trim();
+        String password = Main.sc.nextLine().trim();
 
         boolean authenticated = Main.loginManager.authenticateUser(username, password);
         if (authenticated) {
@@ -93,7 +78,14 @@ public class Menu {
             System.out.println("6. Change Password");
             System.out.println("7. Logout");
             System.out.println("==================================================");
-            int choiceVal = readInt("Enter choice (1-7): ");
+            System.out.print("Enter choice (1-7): ");
+            int choiceVal;
+            try {
+                choiceVal = Integer.parseInt(Main.sc.nextLine().trim());
+            } catch (NumberFormatException e) {
+                System.out.println("Invalid choice. Enter a number from 1 to 7.");
+                continue;
+            }
             switch (choiceVal) {
                 case 1: donor.displayDetails(); break;
                 case 2: donor.updateDetails(); break;
@@ -105,9 +97,10 @@ public class Menu {
                     }
                     break;
                 case 4: donor.viewDonationHistory(); break;
-                case 5: donor.donate(scanner); break;
+                case 5: donor.donate(); break;
                 case 6:
-                    String newPass = readString("Enter New Password: ");
+                    System.out.print("Enter New Password: ");
+                    String newPass = Main.sc.nextLine().trim();
                     Main.loginManager.changePassword(newPass);
                     break;
                 case 7:
@@ -133,13 +126,21 @@ public class Menu {
             System.out.println("4. Change Password");
             System.out.println("5. Logout");
             System.out.println("==================================================");
-            int choiceVal = readInt("Enter choice (1-5): ");
+            System.out.print("Enter choice (1-5): ");
+            int choiceVal;
+            try {
+                choiceVal = Integer.parseInt(Main.sc.nextLine().trim());
+            } catch (NumberFormatException e) {
+                System.out.println("Invalid choice. Enter a number from 1 to 5.");
+                continue;
+            }
             switch (choiceVal) {
                 case 1: patient.displayDetails(); break;
                 case 2: patient.updateDetails(); break;
                 case 3: patient.viewRequestStatus(); break;
                 case 4:
-                    String newPass = readString("Enter New Password: ");
+                    System.out.print("Enter New Password: ");
+                    String newPass = Main.sc.nextLine().trim();
                     Main.loginManager.changePassword(newPass);
                     break;
                 case 5:
@@ -177,13 +178,20 @@ public class Menu {
             System.out.println("8. Change Password");
             System.out.println("9. Logout");
             System.out.println("==================================================");
-            int choiceVal = readInt("Enter choice (1-9): ");
+            System.out.print("Enter choice (1-9): ");
+            int choiceVal;
+            try {
+                choiceVal = Integer.parseInt(Main.sc.nextLine().trim());
+            } catch (NumberFormatException e) {
+                System.out.println("Invalid choice. Enter a number from 1 to 9.");
+                continue;
+            }
             switch (choiceVal) {
                 case 1:
-                    staff.createPatient(scanner);
+                    staff.createPatient();
                     break;
                 case 2:
-                    staff.requestBlood(scanner);
+                    staff.requestBlood();
                     break;
                 case 3:
                     if (hospital != null) {
@@ -193,10 +201,10 @@ public class Menu {
                     }
                     break;
                 case 4:
-                    staff.issueBlood(scanner);
+                    staff.issueBlood();
                     break;
                 case 5:
-                    staff.requestRestock(scanner);
+                    staff.requestRestock();
                     break;
                 case 6:
                     if (hospital != null) hospital.viewRequestHistory();
@@ -205,7 +213,8 @@ public class Menu {
                     if (hospital != null) hospital.viewRestockHistory();
                     break;
                 case 8:
-                    String newPass = readString("Enter New Password: ");
+                    System.out.print("Enter New Password: ");
+                    String newPass = Main.sc.nextLine().trim();
                     Main.loginManager.changePassword(newPass);
                     break;
                 case 9:
@@ -236,15 +245,22 @@ public class Menu {
             System.out.println("8. Change Password");
             System.out.println("9. Logout");
             System.out.println("==================================================");
-            int choiceVal = readInt("Enter choice (1-9): ");
+            System.out.print("Enter choice (1-9): ");
+            int choiceVal;
+            try {
+                choiceVal = Integer.parseInt(Main.sc.nextLine().trim());
+            } catch (NumberFormatException e) {
+                System.out.println("Invalid choice. Enter a number from 1 to 9.");
+                continue;
+            }
             switch (choiceVal) {
                 case 1:
                     System.out.println("\n--- Donations ---");
                     if (Main.donations.isEmpty()) System.out.println("No donations recorded.");
                     for (BloodDonation donation : Main.donations) donation.displayTransaction();
                     break;
-                case 2: admin.approvePassedDonations(scanner); break;
-                case 3: admin.reviewHospitalRestockRequests(scanner); break;
+                case 2: admin.approvePassedDonations(); break;
+                case 3: admin.reviewHospitalRestockRequests(); break;
                 case 4:
                     System.out.println("\nCentral Inventory Stock:");
                     Main.inventory.displayInventory();
@@ -253,10 +269,11 @@ public class Menu {
                     Main.alertManager.displayHospitalStock();
                     Main.alertManager.checkExpiry();
                     break;
-                case 6: admin.viewHospitalRestockHistory(scanner); break;
-                case 7: admin.manageFacilities(scanner); break;
+                case 6: admin.viewHospitalRestockHistory(); break;
+                case 7: admin.manageFacilities(); break;
                 case 8:
-                    String newPass = readString("Enter New Password: ");
+                    System.out.print("Enter New Password: ");
+                    String newPass = Main.sc.nextLine().trim();
                     Main.loginManager.changePassword(newPass);
                     break;
                 case 9:

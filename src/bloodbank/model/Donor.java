@@ -6,7 +6,6 @@ import bloodbank.utility.Validation;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoUnit;
-import java.util.Scanner;
 
 public class Donor extends Person {
     private String bloodGroup;
@@ -46,14 +45,13 @@ public class Donor extends Person {
 
     @Override
     public void updateDetails() {
-        Scanner sc = new Scanner(System.in);
         System.out.println("Updating details for Donor: " + name);
         System.out.print("Enter New Name (Current: " + name + "): ");
-        String newName = sc.nextLine().trim();
+        String newName = Main.sc.nextLine().trim();
         if (!newName.isEmpty()) this.name = newName;
 
         System.out.print("Enter New Age (Current: " + age + "): ");
-        String ageStr = sc.nextLine().trim();
+        String ageStr = Main.sc.nextLine().trim();
         if (!ageStr.isEmpty()) {
             try {
                 this.age = Integer.parseInt(ageStr);
@@ -61,21 +59,21 @@ public class Donor extends Person {
         }
 
         System.out.print("Enter New Gender (Current: " + gender + "): ");
-        String newGender = sc.nextLine().trim();
+        String newGender = Main.sc.nextLine().trim();
         if (!newGender.isEmpty()) this.gender = newGender;
 
         System.out.print("Enter New Phone (Current: " + phoneNumber + "): ");
-        String phone = sc.nextLine().trim();
+        String phone = Main.sc.nextLine().trim();
         if (!phone.isEmpty() && Validation.validatePhoneNumber(phone)) {
             this.phoneNumber = phone;
         }
 
         System.out.print("Enter New Address (Current: " + address + "): ");
-        String newAddr = sc.nextLine().trim();
+        String newAddr = Main.sc.nextLine().trim();
         if (!newAddr.isEmpty()) this.address = newAddr;
 
         System.out.print("Enter New Haemoglobin level (Current: " + haemoglobin + "): ");
-        String hbStr = sc.nextLine().trim();
+        String hbStr = Main.sc.nextLine().trim();
         if (!hbStr.isEmpty()) {
             try {
                 this.haemoglobin = Double.parseDouble(hbStr);
@@ -83,7 +81,7 @@ public class Donor extends Person {
         }
 
         System.out.print("Enter New Weight (Current: " + weight + "): ");
-        String wStr = sc.nextLine().trim();
+        String wStr = Main.sc.nextLine().trim();
         if (!wStr.isEmpty()) {
             try {
                 this.weight = Double.parseDouble(wStr);
@@ -155,7 +153,7 @@ public class Donor extends Person {
         }
     }
 
-    public BloodDonation donate(Scanner scanner) {
+    public BloodDonation donate() {
         System.out.println("\n--- Donate Blood ---");
         if (!isEligible()) {
             System.out.println("Donation cannot be submitted. Donor is not eligible.");
@@ -166,7 +164,7 @@ public class Donor extends Person {
         System.out.print("Enter Quantity collected (Units, e.g. 1 unit): ");
         int quantity;
         try {
-            quantity = Integer.parseInt(scanner.nextLine().trim());
+            quantity = Integer.parseInt(Main.sc.nextLine().trim());
         } catch (NumberFormatException e) {
             System.out.println("Quantity must be a number.");
             return null;
