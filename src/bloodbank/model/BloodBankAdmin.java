@@ -3,16 +3,65 @@ package bloodbank.model;
 import bloodbank.Main;
 import bloodbank.utility.Validation;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
 
 public class BloodBankAdmin extends Staff {
-    public ArrayList<BloodRequest> getRequestsForReview() {
+    public void approvePassedDonations(Scanner scanner) {
+        ArrayList<BloodDonation> pendingDonations = new ArrayList<>();
+        for (BloodDonation donation : Main.donations) {
+            if ("PENDING_APPROVAL".equalsIgnoreCase(donation.getStatus())) {
+                pendingDonations.add(donation);
+            }
+        }
+
+        System.out.println("\n--- Passed Donations Waiting for Approval ---");
+        if (pendingDonations.isEmpty()) {
+            System.out.println("No passed donations are waiting for approval.");
+            return;
+        }
+        for (int i = 0; i < pendingDonations.size(); i++) {
+            BloodDonation donation = pendingDonations.get(i);
+            System.out.println((i + 1) + ". " + donation.getTransactionId()
+                    + " | Donor: " + donation.getDonorId()
+                    + " | Group: " + donation.getBloodGroup()
+                    + " | Units: " + donation.getQuantity());
+        }
+        int index = readInt(scanner, "Select donation (1-" + pendingDonations.size() + "): ") - 1;
+        if (index < 0 || index >= pendingDonations.size()) {
+            System.out.println("Invalid selection.");
+            return;
+        }
+
+        BloodDonation donation = pendingDonations.get(index);
+        String answer = ask(scanner, "Approve this passed donation? (YES/NO): ");
+        while (!"YES".equalsIgnoreCase(answer) && !"NO".equalsIgnoreCase(answer)) {
+            System.out.println("Please enter YES or NO.");
+            answer = ask(scanner, "Approve this passed donation? (YES/NO): ");
+        }
+        if ("NO".equalsIgnoreCase(answer)) {
+            donation.setStatus("REJECTED");
+            System.out.println("Donation rejected. No blood was added to central stock.");
+        } else {
+            LocalDate collectionDate = LocalDate.parse(donation.getTransactionDate());
+            BloodUnit unit = new BloodUnit(donation.getBloodUnitId(), donation.getBloodGroup(),
+                    donation.getQuantity(), donation.getTransactionDate(),
+                    collectionDate.plusDays(42).toString(), "AVAILABLE");
+            Main.inventory.addBloodUnit(unit);
+            donation.setStatus("COMPLETED");
+            System.out.println("Donation approved. Blood was added to central stock.");
+        }
+        Main.saveDonationsToFile();
+        Main.saveBloodUnitsToFile();
+    }
+
+    private ArrayList<BloodRequest> getRequestsForReview(boolean restockRequests) {
         ArrayList<BloodRequest> requests = new ArrayList<>();
         for (BloodRequest request : Main.requests) {
             if ("Pending".equalsIgnoreCase(request.getStatus())
-                    || "APPROVED".equalsIgnoreCase(request.getStatus())) {
+                    && request.isHospitalRestockRequest() == restockRequests) {
                 requests.add(request);
             }
         }
@@ -36,10 +85,11 @@ public class BloodBankAdmin extends Staff {
                 break;
             }
         }
-        int localStock = hospital == null ? 0
-                : hospital.getInventory().getStockForGroup(request.getBloodGroup());
-        int shortage = Math.max(0, request.getUnitsRequested() - localStock);
-        if (Main.inventory.getStockForGroup(request.getBloodGroup()) < shortage) {
+        int localStock = hospital == null ? 0 : hospital.getInventory().getStockForGroup(request.getBloodGroup());
+        int centralUnitsNeeded = request.isHospitalRestockRequest()
+                ? request.getUnitsRequested()
+                : Math.max(0, request.getUnitsRequested() - localStock);
+        if (Main.inventory.getStockForGroup(request.getBloodGroup()) < centralUnitsNeeded) {
             return false;
         }
         request.approveRequest();
@@ -50,18 +100,29 @@ public class BloodBankAdmin extends Staff {
         request.rejectRequest();
     }
 
-    public void reviewRequestsAndDispatch(Scanner scanner) {
-        System.out.println("\n--- Approve/Reject Requests / Dispatch Transfer ---");
-        List<BloodRequest> requests = getRequestsForReview();
+    public void reviewPatientRequests(Scanner scanner) {
+        reviewRequests(scanner, false);
+    }
+
+    public void reviewHospitalRestockRequests(Scanner scanner) {
+        reviewRequests(scanner, true);
+    }
+
+    private void reviewRequests(Scanner scanner, boolean restockRequests) {
+        System.out.println(restockRequests
+                ? "\n--- Approve/Reject Hospital Stock Requests ---"
+                : "\n--- Approve/Reject Patient Blood Requests ---");
+        List<BloodRequest> requests = getRequestsForReview(restockRequests);
         if (requests.isEmpty()) {
-            System.out.println("No requests need admin action.");
+            System.out.println(restockRequests ? "No hospital stock requests need review." : "No patient requests need review.");
             return;
         }
         for (int i = 0; i < requests.size(); i++) {
             BloodRequest request = requests.get(i);
             System.out.println((i + 1) + ". ID: " + request.getTransactionId()
                     + " | Status: " + request.getStatus() + " | Urgency: " + request.getUrgency()
-                    + " | Hospital: " + request.getHospitalId() + " | Patient: " + request.getPatientId()
+                    + " | Hospital: " + request.getHospitalId()
+                    + (request.isHospitalRestockRequest() ? " | Request: Hospital stock" : " | Patient: " + request.getPatientId())
                     + " | Group: " + request.getBloodGroup() + " | Units: " + request.getUnitsRequested());
         }
         int index = readInt(scanner, "Select request (1-" + requests.size() + "): ") - 1;
@@ -87,10 +148,47 @@ public class BloodBankAdmin extends Staff {
             }
             Main.saveRequestsToFile();
         }
-        dispatchTransfer(scanner, request);
     }
 
-    public void dispatchTransfer(Scanner scanner, BloodRequest request) {
+    public void dispatchPatientTransfer(Scanner scanner) {
+        dispatchTransfer(scanner, false);
+    }
+
+    public void dispatchHospitalStockTransfer(Scanner scanner) {
+        dispatchTransfer(scanner, true);
+    }
+
+    private void dispatchTransfer(Scanner scanner, boolean restockTransfer) {
+        System.out.println(restockTransfer
+                ? "\n--- Dispatch Hospital Stock Transfer ---"
+                : "\n--- Dispatch Patient Blood Transfer ---");
+        ArrayList<BloodRequest> approvedRequests = new ArrayList<>();
+        for (BloodRequest request : Main.requests) {
+            if ("APPROVED".equalsIgnoreCase(request.getStatus())
+                    && request.isHospitalRestockRequest() == restockTransfer) approvedRequests.add(request);
+        }
+        if (approvedRequests.isEmpty()) {
+            System.out.println(restockTransfer
+                    ? "No approved hospital stock requests are waiting for transfer."
+                    : "No approved patient requests are waiting for transfer.");
+            return;
+        }
+        for (int i = 0; i < approvedRequests.size(); i++) {
+            BloodRequest request = approvedRequests.get(i);
+            System.out.println((i + 1) + ". ID: " + request.getTransactionId()
+                    + (restockTransfer ? " | Hospital stock restock" : " | Patient: " + request.getPatientId())
+                    + " | Hospital: " + request.getHospitalId()
+                    + " | Group: " + request.getBloodGroup() + " | Units: " + request.getUnitsRequested());
+        }
+        int index = readInt(scanner, "Select approved request to dispatch (1-" + approvedRequests.size() + "): ") - 1;
+        if (index < 0 || index >= approvedRequests.size()) {
+            System.out.println("Invalid selection.");
+            return;
+        }
+        dispatchApprovedRequest(scanner, approvedRequests.get(index));
+    }
+
+    private void dispatchApprovedRequest(Scanner scanner, BloodRequest request) {
         String answer = ask(scanner, "Dispatch this approved request now? (YES/NO): ");
         while (!"YES".equalsIgnoreCase(answer) && !"NO".equalsIgnoreCase(answer)) {
             System.out.println("Please enter YES or NO.");
@@ -114,39 +212,32 @@ public class BloodBankAdmin extends Staff {
         Main.saveBloodUnitsToFile();
     }
 
-    public void removeBloodUnit(Scanner scanner) {
-        System.out.println("\n--- Remove Blood Unit ---");
-        String unitId = ask(scanner, "Enter Blood Unit ID to remove: ");
-        boolean removed = Main.inventory.removeBloodUnit(unitId);
-        if (!removed) {
-            for (Hospital hospital : Main.hospitals) {
-                if (hospital.getInventory().removeBloodUnit(unitId)) {
-                    removed = true;
-                    break;
-                }
-            }
+    public void viewHospitalRestockHistory(Scanner scanner) {
+        if (Main.hospitals.isEmpty()) {
+            System.out.println("No hospitals are registered.");
+            return;
         }
-        if (removed) {
-            Main.saveBloodUnitsToFile();
-            System.out.println("Blood unit removed successfully.");
-        } else {
-            System.out.println("Unit ID not found.");
+        for (int i = 0; i < Main.hospitals.size(); i++) {
+            Hospital hospital = Main.hospitals.get(i);
+            System.out.println((i + 1) + ". " + hospital.getOrganizationId() + " - " + hospital.getOrganizationName());
         }
+        int selected = readInt(scanner, "Select hospital: ") - 1;
+        if (selected < 0 || selected >= Main.hospitals.size()) {
+            System.out.println("Invalid selection.");
+            return;
+        }
+        Main.hospitals.get(selected).viewRestockHistory();
     }
 
     public void manageFacilities(Scanner scanner) {
-        System.out.println("\n--- Facility Registry ---");
-        System.out.println("1. View Registered Blood Banks");
-        System.out.println("2. View Registered Hospitals");
-        System.out.println("3. Register New Hospital");
-        System.out.println("4. Register New Blood Bank");
-        int choice = readInt(scanner, "Enter choice (1-4): ");
+        System.out.println("\n--- Manage Hospitals ---");
+        System.out.println("1. View Registered Hospitals");
+        System.out.println("2. Register New Hospital");
+        int choice = readInt(scanner, "Enter choice (1-2): ");
         if (choice == 1) {
-            for (BloodBank bank : Main.bloodBanks) bank.displayOrganization();
-        } else if (choice == 2) {
             for (Hospital hospital : Main.hospitals) hospital.displayOrganization();
-        } else if (choice == 3) {
-            String id = "HOSP_" + System.currentTimeMillis();
+        } else if (choice == 2) {
+            String id = Main.nextId("HOSP");
             String name = ask(scanner, "Hospital Name: ");
             String address = ask(scanner, "Address: ");
             String contact = ask(scanner, "Contact Number: ");
@@ -155,15 +246,6 @@ public class BloodBankAdmin extends Staff {
             Main.hospitals.add(new Hospital(id, name, address, contact, type, emergencyContact, new Inventory()));
             Main.saveHospitalsToFile();
             System.out.println("Hospital registered successfully! ID: " + id);
-        } else if (choice == 4) {
-            String id = "BB_" + System.currentTimeMillis();
-            String name = ask(scanner, "Blood Bank Name: ");
-            String address = ask(scanner, "Address: ");
-            String contact = ask(scanner, "Contact Number: ");
-            String manager = ask(scanner, "Manager Name: ");
-            Main.bloodBanks.add(new BloodBank(id, name, address, contact, manager, Main.inventory));
-            Main.saveBloodBanksToFile();
-            System.out.println("Blood Bank registered successfully! ID: " + id);
         } else {
             System.out.println("Invalid choice.");
         }

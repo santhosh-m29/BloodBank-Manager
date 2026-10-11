@@ -56,7 +56,7 @@ public class Hospital extends Organization {
         System.out.println("\n--- Request History for Hospital: " + organizationName + " ---");
         boolean found = false;
         for (BloodRequest req : Main.requests) {
-            if (req.getHospitalId().equals(this.organizationId)) {
+            if (req.getHospitalId().equals(this.organizationId) && !req.isHospitalRestockRequest()) {
                 req.displayTransaction();
                 found = true;
             }
@@ -64,6 +64,18 @@ public class Hospital extends Organization {
         if (!found) {
             System.out.println("No blood requests submitted by this hospital yet.");
         }
+    }
+
+    public void viewRestockHistory() {
+        System.out.println("\n--- Hospital Stock Request History: " + organizationName + " ---");
+        boolean found = false;
+        for (BloodRequest request : Main.requests) {
+            if (request.getHospitalId().equals(organizationId) && request.isHospitalRestockRequest()) {
+                request.displayTransaction();
+                found = true;
+            }
+        }
+        if (!found) System.out.println("No hospital stock requests found.");
     }
 
     public void viewInventory() {

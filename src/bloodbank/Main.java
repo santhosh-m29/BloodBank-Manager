@@ -40,7 +40,6 @@ public class Main {
     // Services
     public static LoginManager loginManager;
     public static AlertManager alertManager;
-    public static ReportGenerator reportGenerator;
 
     public static void main(String[] args) {
         initializeSystem();
@@ -60,8 +59,7 @@ public class Main {
 
         // Initialize Services
         loginManager = new LoginManager();
-        alertManager = new AlertManager(10, 7); // low stock threshold = 10 units, near expiry = 7 days
-        reportGenerator = new ReportGenerator("Main System Report");
+        alertManager = new AlertManager(7); // alert window for expiry = 7 days
 
         // Load Persistent Data
         FileManager fm = new FileManager();
@@ -71,16 +69,18 @@ public class Main {
         patients = FileManager.loadPatients(PATIENTS_FILE);
         bloodBanks = FileManager.loadBloodBanks(BLOODBANKS_FILE);
         boolean bloodBanksChanged = false;
-        if (!hasBloodBank("BB001")) {
-            bloodBanks.add(new BloodBank("BB001", "City Blood Center", "100 Central Ave", "555-0100", "Dr. Adams", inventory));
+        BloodBank centralBank = null;
+        for (BloodBank bank : bloodBanks) {
+            if ("BB001".equalsIgnoreCase(bank.getOrganizationId())) centralBank = bank;
+        }
+        if (centralBank == null) {
+            centralBank = new BloodBank("BB001", "City Blood Center", "100 Central Ave", "555-0100", "Dr. Adams", inventory);
+            bloodBanks.add(centralBank);
             bloodBanksChanged = true;
         }
-        if (!hasBloodBank("BB002")) {
-            bloodBanks.add(new BloodBank("BB002", "Northside Blood Bank", "25 North Ave", "555-0102", "Dr. Patel", inventory));
-            bloodBanksChanged = true;
-        }
-        if (!hasBloodBank("BB003")) {
-            bloodBanks.add(new BloodBank("BB003", "Southside Blood Bank", "50 South Ave", "555-0103", "Dr. Rao", inventory));
+        if (bloodBanks.size() != 1 || bloodBanks.get(0) != centralBank) {
+            bloodBanks.clear();
+            bloodBanks.add(centralBank);
             bloodBanksChanged = true;
         }
         for (BloodBank bloodBank : bloodBanks) {
@@ -97,33 +97,41 @@ public class Main {
         // Reconstruct hospital structures and route blood units
         fm.loadAllBloodUnits(BLOODUNITS_FILE);
 
-        // Seed default demo hospitals if the saved list is too small.
-        if (hospitals.size() < 2) {
-            hospitals.clear();
+        // Keep three hospitals in the demo system.
+        if (!hasHospital("HOSP001")) {
             hospitals.add(new Hospital("HOSP001", "St. Jude Hospital", "456 Medical Dr", "555-0111", "Private", "911", new Inventory()));
+        }
+        if (!hasHospital("HOSP002")) {
             hospitals.add(new Hospital("HOSP002", "Grace Clinic", "789 Care Blvd", "555-0222", "Public", "100", new Inventory()));
+        }
+        if (!hasHospital("HOSP003")) {
+            hospitals.add(new Hospital("HOSP003", "Mercy General Hospital", "12 Mercy Way", "555-0333", "Public", "911", new Inventory()));
+        }
+        if (hospitals.size() > 3) {
+            while (hospitals.size() > 3) hospitals.remove(hospitals.size() - 1);
+        }
+        if (hospitals.size() == 3) {
             saveHospitalsToFile();
-            
-            // Clear staff to re-seed so they match the hospitals correctly
-            hospitalStaffs.clear();
         }
 
         boolean adminsChanged = false;
-        if (!hasAdminForBloodBank("BB001")) {
+        for (int i = admins.size() - 1; i >= 0; i--) {
+            if (!"BB001".equalsIgnoreCase(admins.get(i).getFacilityId())) {
+                admins.remove(i);
+                adminsChanged = true;
+            }
+        }
+        while (admins.size() > 1) {
+            admins.remove(admins.size() - 1);
+            adminsChanged = true;
+        }
+        if (admins.isEmpty()) {
             admins.add(new BloodBankAdmin("ADM001", "City Blood Bank Admin", 35, "Male", "9999999999", "City Blood Center", "admin", "admin123", "BLOOD_BANK_ADMIN", "EMP001", "BB001"));
-            adminsChanged = true;
-        }
-        if (!hasAdminForBloodBank("BB002")) {
-            admins.add(new BloodBankAdmin("ADM002", "Northside Blood Bank Admin", 36, "Female", "9999999998", "Northside Blood Bank", "admin2", "admin123", "BLOOD_BANK_ADMIN", "EMP002", "BB002"));
-            adminsChanged = true;
-        }
-        if (!hasAdminForBloodBank("BB003")) {
-            admins.add(new BloodBankAdmin("ADM003", "Southside Blood Bank Admin", 37, "Male", "9999999997", "Southside Blood Bank", "admin3", "admin123", "BLOOD_BANK_ADMIN", "EMP003", "BB003"));
             adminsChanged = true;
         }
         if (adminsChanged) {
             saveAdminsToFile();
-            System.out.println("Three blood bank admin accounts initialized.");
+            System.out.println("Central blood bank admin account initialized.");
         }
 
         if (hospitalStaffs.size() < 2) {
@@ -151,23 +159,16 @@ public class Main {
         }
 
         // Start with empty central stock and basic local hospital stock.
-        boolean anyStock = !inventory.getBloodUnits().isEmpty();
         for (Hospital h : hospitals) {
-            if (!h.getInventory().getBloodUnits().isEmpty()) {
-                anyStock = true;
-                break;
-            }
-        }
-        if (!anyStock) {
-            for (Hospital h : hospitals) {
+            if (h.getInventory().getBloodUnits().isEmpty()) {
                 for (int i = 1; i <= 5; i++) {
                     String date = LocalDate.now().toString();
                     String expiry = LocalDate.now().plusDays(42).toString();
-                    h.getInventory().addBloodUnit(new BloodUnit(h.getOrganizationId() + "_A_" + i, "A+", 1, date, expiry, "AVAILABLE"));
-                    h.getInventory().addBloodUnit(new BloodUnit(h.getOrganizationId() + "_B_" + i, "B+", 1, date, expiry, "AVAILABLE"));
+                    h.getInventory().addBloodUnit(new BloodUnit(nextBloodUnitId(), "A+", 1, date, expiry, "AVAILABLE"));
+                    h.getInventory().addBloodUnit(new BloodUnit(nextBloodUnitId(), "B+", 1, date, expiry, "AVAILABLE"));
                 }
+                fm.saveAllBloodUnits(BLOODUNITS_FILE);
             }
-            fm.saveAllBloodUnits(BLOODUNITS_FILE);
         }
 
         // Reconstruct staffs lists on loaded Hospital objects
@@ -183,8 +184,6 @@ public class Main {
         }
 
         System.out.println("System Initialization Complete.");
-        alertManager.checkLowStock();
-        alertManager.checkExpiry();
     }
 
     public static void closeApplication() {
@@ -235,17 +234,47 @@ public class Main {
         new FileManager().saveAllBloodUnits(BLOODUNITS_FILE);
     }
 
-    private static boolean hasBloodBank(String bankId) {
-        for (BloodBank bloodBank : bloodBanks) {
-            if (bloodBank.getOrganizationId().equalsIgnoreCase(bankId)) return true;
+    private static boolean hasHospital(String hospitalId) {
+        for (Hospital hospital : hospitals) {
+            if (hospital.getOrganizationId().equalsIgnoreCase(hospitalId)) return true;
         }
         return false;
     }
 
-    private static boolean hasAdminForBloodBank(String bankId) {
+    public static String nextId(String prefix) {
+        int largest = 0;
         for (BloodBankAdmin admin : admins) {
-            if (admin.getFacilityId().equalsIgnoreCase(bankId)) return true;
+            largest = Math.max(largest, idNumber(admin.getPersonId(), prefix));
+            largest = Math.max(largest, idNumber(admin.getEmployeeId(), prefix));
         }
-        return false;
+        for (HospitalStaff staff : hospitalStaffs) {
+            largest = Math.max(largest, idNumber(staff.getPersonId(), prefix));
+            largest = Math.max(largest, idNumber(staff.getEmployeeId(), prefix));
+        }
+        for (Person person : donors) largest = Math.max(largest, idNumber(person.getPersonId(), prefix));
+        for (Person person : patients) largest = Math.max(largest, idNumber(person.getPersonId(), prefix));
+        for (BloodDonation donation : donations) largest = Math.max(largest, idNumber(donation.getTransactionId(), prefix));
+        for (BloodRequest request : requests) largest = Math.max(largest, idNumber(request.getTransactionId(), prefix));
+        for (BloodTransfer transfer : transfers) largest = Math.max(largest, idNumber(transfer.getTransactionId(), prefix));
+        for (Hospital hospital : hospitals) largest = Math.max(largest, idNumber(hospital.getOrganizationId(), prefix));
+        for (BloodBank bank : bloodBanks) largest = Math.max(largest, idNumber(bank.getOrganizationId(), prefix));
+        return prefix + String.format("%03d", largest + 1);
     }
+
+    private static int idNumber(String id, String prefix) {
+        if (id == null || !id.startsWith(prefix)) return 0;
+        try { return Integer.parseInt(id.substring(prefix.length())); }
+        catch (NumberFormatException e) { return 0; }
+    }
+
+    public static String nextBloodUnitId() {
+        int largest = 0;
+        for (BloodUnit unit : inventory.getBloodUnits()) largest = Math.max(largest, idNumber(unit.getBloodUnitId(), "UNIT"));
+        for (BloodDonation donation : donations) largest = Math.max(largest, idNumber(donation.getBloodUnitId(), "UNIT"));
+        for (Hospital hospital : hospitals) {
+            for (BloodUnit unit : hospital.getInventory().getBloodUnits()) largest = Math.max(largest, idNumber(unit.getBloodUnitId(), "UNIT"));
+        }
+        return "UNIT" + String.format("%03d", largest + 1);
+    }
+
 }

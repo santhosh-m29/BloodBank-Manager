@@ -40,7 +40,9 @@ public class BloodBank extends Organization {
 
     public boolean transferBloodUnits(BloodRequest request, Hospital destination) {
         int localStock = destination.getInventory().getStockForGroup(request.getBloodGroup());
-        int unitsToMove = Math.max(0, request.getUnitsRequested() - localStock);
+        int unitsToMove = request.isHospitalRestockRequest()
+                ? request.getUnitsRequested()
+                : Math.max(0, request.getUnitsRequested() - localStock);
         int available = Main.inventory.getStockForGroup(request.getBloodGroup());
         if (available < unitsToMove) {
             System.out.println("Insufficient central stock for this transfer. Request remains approved.");
@@ -53,13 +55,12 @@ public class BloodBank extends Organization {
         }
 
         int transferQuantity = unitsToMove;
-        String transactionId = "TRANS_" + System.currentTimeMillis();
+        String transactionId = Main.nextId("TRANS");
         BloodTransfer transfer = new BloodTransfer(transactionId, LocalDate.now().toString(), "Pending",
                 organizationId, destination.getOrganizationId(), request.getBloodGroup(), transferQuantity);
         transfer.transferUnits();
 
         BloodUnit[] units = Main.inventory.searchBloodGroup(request.getBloodGroup());
-        int transferCounter = 0;
         for (BloodUnit unit : units) {
             if (unitsToMove <= 0) break;
             int movedQuantity = Math.min(unit.getQuantity(), unitsToMove);
@@ -68,7 +69,7 @@ public class BloodBank extends Organization {
             } else {
                 unit.updateQuantity(unit.getQuantity() - movedQuantity);
             }
-            String newUnitId = "HOSP_UNIT_" + System.currentTimeMillis() + "_" + transferCounter++;
+            String newUnitId = Main.nextBloodUnitId();
             BloodUnit movedUnit = new BloodUnit(newUnitId, request.getBloodGroup(), movedQuantity,
                     unit.getCollectionDate(), unit.getExpiryDate(), "AVAILABLE");
             destination.getInventory().addBloodUnit(movedUnit);
@@ -77,9 +78,14 @@ public class BloodBank extends Organization {
 
         transfer.recordTransfer();
         Main.transfers.add(transfer);
-        request.setStatus("READY");
-        System.out.println("Transfer dispatched successfully. " + transferQuantity
-                + " units were transferred; the request is ready to issue.");
+        if (request.isHospitalRestockRequest()) {
+            request.setStatus("COMPLETED");
+            System.out.println("Hospital restock dispatched. " + transferQuantity + " units were added to local stock.");
+        } else {
+            request.setStatus("READY");
+            System.out.println("Transfer dispatched successfully. " + transferQuantity
+                    + " units were transferred; the patient request is ready to issue.");
+        }
         return true;
     }
 }

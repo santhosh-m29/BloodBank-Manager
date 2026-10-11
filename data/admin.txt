@@ -1,3 +1,1 @@
 ADM001,System Administrator,35,Male,9999999999,Blood Bank HQ,admin,admin123,BLOOD_BANK_ADMIN,EMP001,BB001
-ADM002,Northside Blood Bank Admin,36,Female,9999999998,Northside Blood Bank,admin2,admin123,BLOOD_BANK_ADMIN,EMP002,BB002
-ADM003,Southside Blood Bank Admin,37,Male,9999999997,Southside Blood Bank,admin3,admin123,BLOOD_BANK_ADMIN,EMP003,BB003

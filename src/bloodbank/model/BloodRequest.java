@@ -32,6 +32,10 @@ public class BloodRequest extends Transaction {
     public String getUrgency() { return urgency; }
     public void setUrgency(String urgency) { this.urgency = urgency; }
 
+    public boolean isHospitalRestockRequest() {
+        return patientId == null || patientId.trim().isEmpty();
+    }
+
     @Override
     public void displayTransaction() {
         System.out.println("----------------------------------------");
@@ -39,7 +43,12 @@ public class BloodRequest extends Transaction {
         System.out.println("Request ID (Txn ID): " + transactionId);
         System.out.println("Date: " + transactionDate);
         System.out.println("Status: " + status);
-        System.out.println("Patient ID: " + patientId);
+        if (isHospitalRestockRequest()) {
+            System.out.println("Request Type: Hospital stock restock");
+        } else {
+            System.out.println("Request Type: Patient blood request");
+            System.out.println("Patient ID: " + patientId);
+        }
         System.out.println("Hospital ID: " + hospitalId);
         System.out.println("Blood Group Required: " + bloodGroup);
         System.out.println("Units Requested: " + unitsRequested + " units");

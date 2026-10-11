@@ -49,7 +49,7 @@ public class LoginManager {
             String group = readBloodGroup(scanner, "Blood Group (e.g. A+, O-): ");
             double haemoglobin = readDouble(scanner, "Hemoglobin level (g/dL): ");
             double weight = readDouble(scanner, "Weight (kg): ");
-            String id = "DON_" + System.currentTimeMillis();
+            String id = Main.nextId("DON");
             Main.donors.add(new Donor(id, name, age, gender, phone, address,
                     username, password, "DONOR", group, haemoglobin, weight, ""));
             Main.saveDonorsToFile();
@@ -60,7 +60,7 @@ public class LoginManager {
             String doctor = ask(scanner, "Referring Doctor: ");
             int units = readInt(scanner, "Units Required: ");
             String hospitalId = chooseHospital(scanner);
-            String id = "PAT_" + System.currentTimeMillis();
+            String id = Main.nextId("PAT");
             Main.patients.add(new Patient(id, name, age, gender, phone, address,
                     username, password, "PATIENT", group, disease, doctor, units, hospitalId));
             Main.savePatientsToFile();
@@ -68,9 +68,9 @@ public class LoginManager {
         } else if (roleChoice == 3) {
             String hospitalId = chooseHospital(scanner);
             String department = ask(scanner, "Enter Department: ");
-            String id = "STF_" + System.currentTimeMillis();
+            String id = Main.nextId("STF");
             HospitalStaff staff = new HospitalStaff(id, name, age, gender, phone, address,
-                    username, password, "HOSPITAL_STAFF", "EMP_" + System.currentTimeMillis(), hospitalId, department);
+                    username, password, "HOSPITAL_STAFF", Main.nextId("EMP"), hospitalId, department);
             Main.hospitalStaffs.add(staff);
             Hospital hospital = Hospital.findById(hospitalId);
             if (hospital != null) {

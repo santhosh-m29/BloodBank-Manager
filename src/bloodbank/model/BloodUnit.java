@@ -38,14 +38,16 @@ public class BloodUnit {
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
 
-    public boolean runLabTests(boolean passed) {
+    public boolean runLabTests(Donor donor, LocalDate today) {
         System.out.println("\n[LAB TEST] Initiating screening for infectious pathogens (HIV, HBV, HCV, Syphilis) on Unit: " + bloodUnitId);
+        boolean passed = donor != null && today != null && donor.checkEligibility()
+                && donor.getBloodGroup().equalsIgnoreCase(bloodGroup) && !isExpired();
         if (passed) {
             this.status = "TEST_PASSED";
             System.out.println("[LAB TEST RESULT] PASS - Unit " + bloodUnitId + " passed screening.");
         } else {
-            this.status = "TEST_FAILED";
-            System.out.println("[LAB TEST RESULT] FAIL - Pathogen detected in Unit " + bloodUnitId + ". Status set to TEST_FAILED.");
+            this.status = "REJECTED";
+            System.out.println("[LAB TEST RESULT] FAIL - Unit " + bloodUnitId + " did not pass screening.");
         }
         return passed;
     }

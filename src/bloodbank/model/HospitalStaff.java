@@ -47,7 +47,7 @@ public class HospitalStaff extends Staff {
         String doctor = ask(scanner, "Referring Doctor: ");
         int units = askInt(scanner, "Units Required: ");
 
-        String id = "PAT_" + System.currentTimeMillis();
+        String id = Main.nextId("PAT");
         Patient patient = new Patient(id, name, age, gender, phone, address, username, password,
                 "PATIENT", bloodGroup, disease, doctor, units, facilityId);
         Main.patients.add(patient);
@@ -61,14 +61,15 @@ public class HospitalStaff extends Staff {
         System.out.println("Patients registered at this hospital:");
         ArrayList<Patient> hospitalPatients = new ArrayList<>();
         for (Patient patient : Main.patients) {
-            if (patient.getHospitalId().equals(facilityId)) {
+            if (patient.getHospitalId().equals(facilityId) && !hasCompletedRequest(patient)) {
                 hospitalPatients.add(patient);
                 System.out.println(patient.getPersonId() + " - " + patient.getName()
-                        + " - Blood Group: " + patient.getBloodGroup());
+                        + " - Blood Group Required: " + patient.getBloodGroup()
+                        + " - Units Required: " + patient.getUnitsRequired());
             }
         }
         if (hospitalPatients.isEmpty()) {
-            System.out.println("No patients are registered here yet. Register a patient first.");
+            System.out.println("No patients without a completed blood request are available at this hospital.");
             return null;
         }
         String patientId = ask(scanner, "Enter Patient ID: ");
@@ -82,7 +83,8 @@ public class HospitalStaff extends Staff {
         }
 
         System.out.println("Blood group required: " + selected.getBloodGroup());
-        int quantity = askInt(scanner, "Enter Units Required: ");
+        int quantity = selected.getUnitsRequired();
+        System.out.println("Units requested: " + quantity);
         if (quantity <= 0) {
             System.out.println("Quantity must be positive.");
             return null;
@@ -98,7 +100,7 @@ public class HospitalStaff extends Staff {
         else if (urgencyChoice == 3) urgency = "HIGH";
         else if (urgencyChoice == 4) urgency = "CRITICAL";
 
-        BloodRequest request = new BloodRequest("REQ_" + System.currentTimeMillis(),
+        BloodRequest request = new BloodRequest(Main.nextId("REQ"),
                 LocalDate.now().toString(), "Pending", selected.getPersonId(), facilityId,
                 selected.getBloodGroup(), quantity, urgency);
         Hospital hospital = Hospital.findById(facilityId);
@@ -118,6 +120,14 @@ public class HospitalStaff extends Staff {
         return request;
     }
 
+    private boolean hasCompletedRequest(Patient patient) {
+        for (BloodRequest request : Main.requests) {
+            if (request.getPatientId().equals(patient.getPersonId())
+                    && "COMPLETED".equalsIgnoreCase(request.getStatus())) return true;
+        }
+        return false;
+    }
+
     public void issueBlood(Scanner scanner) {
         Hospital hospital = Hospital.findById(facilityId);
         if (hospital == null) return;
@@ -126,6 +136,7 @@ public class HospitalStaff extends Staff {
         List<BloodRequest> readyRequests = new ArrayList<>();
         for (BloodRequest request : Main.requests) {
             if (request.getHospitalId().equals(facilityId)
+                    && !request.isHospitalRestockRequest()
                     && "READY".equalsIgnoreCase(request.getStatus())) {
                 readyRequests.add(request);
             }
@@ -184,12 +195,12 @@ public class HospitalStaff extends Staff {
             System.out.println("Units must be positive.");
             return null;
         }
-        BloodRequest request = new BloodRequest("REQ_RESTOCK_" + System.currentTimeMillis(),
-                LocalDate.now().toString(), "Pending", "HOSPITAL", facilityId,
+        BloodRequest request = new BloodRequest(Main.nextId("REQ"),
+                LocalDate.now().toString(), "Pending", "", facilityId,
                 bloodGroup, quantity, "NORMAL");
         Main.requests.add(request);
         Main.saveRequestsToFile();
-        System.out.println("Restock request sent to central Blood Bank. ID: " + request.getTransactionId());
+        System.out.println("Hospital stock request sent to central Blood Bank. ID: " + request.getTransactionId());
         return request;
     }
 

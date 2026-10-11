@@ -315,12 +315,15 @@ public class FileManager {
                 if (parts.length >= 10) {
                     boolean isOldEmergency = Boolean.parseBoolean(parts[9]);
                     String urgency = isOldEmergency ? parts[8] : parts[7];
-                    list.add(new BloodRequest(parts[0], parts[1], parts[2], parts[3], parts[4], parts[5], Integer.parseInt(parts[6]), urgency));
+                    String patientId = "HOSPITAL".equalsIgnoreCase(parts[3]) ? "" : parts[3];
+                    list.add(new BloodRequest(parts[0], parts[1], parts[2], patientId, parts[4], parts[5], Integer.parseInt(parts[6]), urgency));
                 } else if (parts.length >= 8) {
                     // Backwards compatibility fallback
-                    list.add(new BloodRequest(parts[0], parts[1], parts[2], parts[3], parts[4], parts[5], Integer.parseInt(parts[6]), parts[7]));
+                    String patientId = "HOSPITAL".equalsIgnoreCase(parts[3]) ? "" : parts[3];
+                    list.add(new BloodRequest(parts[0], parts[1], parts[2], patientId, parts[4], parts[5], Integer.parseInt(parts[6]), parts[7]));
                 } else if (parts.length >= 7) {
-                    list.add(new BloodRequest(parts[0], parts[1], parts[2], parts[3], parts[4], parts[5], Integer.parseInt(parts[6]), "NORMAL"));
+                    String patientId = "HOSPITAL".equalsIgnoreCase(parts[3]) ? "" : parts[3];
+                    list.add(new BloodRequest(parts[0], parts[1], parts[2], patientId, parts[4], parts[5], Integer.parseInt(parts[6]), "NORMAL"));
                 }
             }
         } catch (Exception e) {
@@ -335,7 +338,7 @@ public class FileManager {
             for (BloodRequest br : list) {
                 bw.write(String.join(",",
                     br.getTransactionId(), br.getTransactionDate(), br.getStatus(),
-                    br.getPatientId(), br.getHospitalId(), br.getBloodGroup(), String.valueOf(br.getUnitsRequested()),
+                    br.isHospitalRestockRequest() ? "" : br.getPatientId(), br.getHospitalId(), br.getBloodGroup(), String.valueOf(br.getUnitsRequested()),
                     br.getUrgency()
                 ));
                 bw.newLine();

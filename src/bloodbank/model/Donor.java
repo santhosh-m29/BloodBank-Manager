@@ -175,26 +175,18 @@ public class Donor extends Person {
             System.out.println("Quantity must be positive.");
             return null;
         }
-        String result;
-        do {
-            System.out.print("Simulated lab test result (PASS/FAIL): ");
-            result = scanner.nextLine().trim();
-        } while (!"PASS".equalsIgnoreCase(result) && !"FAIL".equalsIgnoreCase(result));
-
         String today = LocalDate.now().toString();
-        String transactionId = "DON_TXN_" + System.currentTimeMillis();
-        String unitId = "UNIT_" + System.currentTimeMillis();
+        String transactionId = Main.nextId("DON_TXN");
+        String unitId = Main.nextBloodUnitId();
         BloodDonation donation = new BloodDonation(transactionId, today, "PENDING_TEST",
                 personId, bloodGroup, quantity, unitId);
         donation.recordDonation();
 
         BloodUnit unit = new BloodUnit(unitId, bloodGroup, quantity, today,
                 LocalDate.now().plusDays(42).toString(), "PENDING_TEST");
-        if (unit.runLabTests("PASS".equalsIgnoreCase(result))) {
-            unit.setStatus("AVAILABLE");
-            donation.setStatus("Completed");
-            Main.inventory.addBloodUnit(unit);
-            System.out.println("Passed blood was added to the central blood bank stock.");
+        if (unit.runLabTests(this, LocalDate.now())) {
+            donation.setStatus("PENDING_APPROVAL");
+            System.out.println("Lab test passed. The blood bank admin must approve it before it enters central stock.");
         } else {
             donation.setStatus("REJECTED");
             System.out.println("Failed blood was not added to stock.");
@@ -205,7 +197,6 @@ public class Donor extends Person {
         System.out.println("Donation saved. Donation ID: " + donation.getTransactionId()
                 + " | Blood unit: " + donation.getBloodUnitId() + " | Status: " + donation.getStatus());
         Main.saveDonationsToFile();
-        Main.saveBloodUnitsToFile();
         Main.saveDonorsToFile();
         return donation;
     }

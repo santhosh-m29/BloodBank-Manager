@@ -8,43 +8,24 @@ import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoUnit;
 
 public class AlertManager {
-    private int lowStockThreshold;
     private int expiryAlertDays;
 
-    public AlertManager(int lowStockThreshold, int expiryAlertDays) {
-        this.lowStockThreshold = lowStockThreshold;
+    public AlertManager(int expiryAlertDays) {
         this.expiryAlertDays = expiryAlertDays;
     }
 
-    public void checkLowStock() {
+    public void displayHospitalStock() {
         String[] groups = {"A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"};
-        boolean alertGenerated = false;
-
-        System.out.println("\n[ALERT MONITOR] Running stock check (Threshold: " + lowStockThreshold + " units)...");
-        
-        // 1. Check Central Blood Bank Stock
-        for (String g : groups) {
-            int bbStock = Main.inventory.getStockForGroup(g);
-            if (bbStock < lowStockThreshold) {
-                System.out.println("  >> [BB ALERT] Central Blood Bank is LOW on group " + g + " (" + bbStock + " units available)");
-                alertGenerated = true;
-            }
-        }
-
-        // 2. Check Hospital Stocks
+        System.out.println("\n--- Available Stock at Each Hospital ---");
+        System.out.printf("%-28s %-12s %-16s%n", "Hospital", "Blood Group", "Available Units");
+        System.out.println("------------------------------------------------------------");
         for (Hospital h : Main.hospitals) {
             for (String g : groups) {
-                int hospStock = h.getInventory().getStockForGroup(g);
-                if (hospStock < lowStockThreshold) {
-                    System.out.println("  >> [HOSP ALERT] " + h.getOrganizationName() + " is LOW on group " + g + " (" + hospStock + " units available)");
-                    alertGenerated = true;
-                }
+                int available = h.getInventory().getStockForGroup(g);
+                System.out.printf("%-28s %-12s %-16d%n", h.getOrganizationName(), g, available);
             }
         }
-
-        if (!alertGenerated) {
-            System.out.println("  >> All facilities have adequate stock levels.");
-        }
+        System.out.println("------------------------------------------------------------");
     }
 
     public void checkExpiry() {
