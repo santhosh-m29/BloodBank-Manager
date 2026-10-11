@@ -5,7 +5,6 @@ import bloodbank.utility.Validation;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Scanner;
 
 public class BloodBankAdmin extends Staff {
@@ -57,72 +56,28 @@ public class BloodBankAdmin extends Staff {
         Main.saveBloodUnitsToFile();
     }
 
-    private ArrayList<BloodRequest> getRequestsForReview(boolean restockRequests) {
+    private ArrayList<BloodRequest> getPendingRestockRequests() {
         ArrayList<BloodRequest> requests = new ArrayList<>();
         for (BloodRequest request : Main.requests) {
             if ("Pending".equalsIgnoreCase(request.getStatus())
-                    && request.isHospitalRestockRequest() == restockRequests) {
+                    && request.isHospitalRestockRequest()) {
                 requests.add(request);
-            }
-        }
-        for (int i = 0; i < requests.size(); i++) {
-            for (int j = i + 1; j < requests.size(); j++) {
-                if (requests.get(j).getUrgencyRank() < requests.get(i).getUrgencyRank()) {
-                    BloodRequest temporary = requests.get(i);
-                    requests.set(i, requests.get(j));
-                    requests.set(j, temporary);
-                }
             }
         }
         return requests;
     }
 
-    public boolean approveRequest(BloodRequest request) {
-        Hospital hospital = null;
-        for (Hospital item : Main.hospitals) {
-            if (item.getOrganizationId().equals(request.getHospitalId())) {
-                hospital = item;
-                break;
-            }
-        }
-        int localStock = hospital == null ? 0 : hospital.getInventory().getStockForGroup(request.getBloodGroup());
-        int centralUnitsNeeded = request.isHospitalRestockRequest()
-                ? request.getUnitsRequested()
-                : Math.max(0, request.getUnitsRequested() - localStock);
-        if (Main.inventory.getStockForGroup(request.getBloodGroup()) < centralUnitsNeeded) {
-            return false;
-        }
-        request.approveRequest();
-        return true;
-    }
-
-    public void rejectRequest(BloodRequest request) {
-        request.rejectRequest();
-    }
-
-    public void reviewPatientRequests(Scanner scanner) {
-        reviewRequests(scanner, false);
-    }
-
     public void reviewHospitalRestockRequests(Scanner scanner) {
-        reviewRequests(scanner, true);
-    }
-
-    private void reviewRequests(Scanner scanner, boolean restockRequests) {
-        System.out.println(restockRequests
-                ? "\n--- Approve/Reject Hospital Stock Requests ---"
-                : "\n--- Approve/Reject Patient Blood Requests ---");
-        List<BloodRequest> requests = getRequestsForReview(restockRequests);
+        System.out.println("\n--- Approve/Reject Hospital Stock Requests ---");
+        ArrayList<BloodRequest> requests = getPendingRestockRequests();
         if (requests.isEmpty()) {
-            System.out.println(restockRequests ? "No hospital stock requests need review." : "No patient requests need review.");
+            System.out.println("No hospital stock requests need review.");
             return;
         }
         for (int i = 0; i < requests.size(); i++) {
             BloodRequest request = requests.get(i);
             System.out.println((i + 1) + ". ID: " + request.getTransactionId()
-                    + " | Status: " + request.getStatus() + " | Urgency: " + request.getUrgency()
                     + " | Hospital: " + request.getHospitalId()
-                    + (request.isHospitalRestockRequest() ? " | Request: Hospital stock" : " | Patient: " + request.getPatientId())
                     + " | Group: " + request.getBloodGroup() + " | Units: " + request.getUnitsRequested());
         }
         int index = readInt(scanner, "Select request (1-" + requests.size() + "): ") - 1;
@@ -131,82 +86,31 @@ public class BloodBankAdmin extends Staff {
             return;
         }
         BloodRequest request = requests.get(index);
-        if ("Pending".equalsIgnoreCase(request.getStatus())) {
-            String answer = ask(scanner, "Approve this request? (YES/NO): ");
-            while (!"YES".equalsIgnoreCase(answer) && !"NO".equalsIgnoreCase(answer)) {
-                System.out.println("Please enter YES or NO.");
-                answer = ask(scanner, "Approve this request? (YES/NO): ");
-            }
-            if ("NO".equalsIgnoreCase(answer)) {
-                rejectRequest(request);
-                Main.saveRequestsToFile();
-                return;
-            }
-            if (!approveRequest(request)) {
-                System.out.println("There is not enough central stock. The request remains pending.");
-                return;
-            }
-            Main.saveRequestsToFile();
-        }
-    }
-
-    public void dispatchPatientTransfer(Scanner scanner) {
-        dispatchTransfer(scanner, false);
-    }
-
-    public void dispatchHospitalStockTransfer(Scanner scanner) {
-        dispatchTransfer(scanner, true);
-    }
-
-    private void dispatchTransfer(Scanner scanner, boolean restockTransfer) {
-        System.out.println(restockTransfer
-                ? "\n--- Dispatch Hospital Stock Transfer ---"
-                : "\n--- Dispatch Patient Blood Transfer ---");
-        ArrayList<BloodRequest> approvedRequests = new ArrayList<>();
-        for (BloodRequest request : Main.requests) {
-            if ("APPROVED".equalsIgnoreCase(request.getStatus())
-                    && request.isHospitalRestockRequest() == restockTransfer) approvedRequests.add(request);
-        }
-        if (approvedRequests.isEmpty()) {
-            System.out.println(restockTransfer
-                    ? "No approved hospital stock requests are waiting for transfer."
-                    : "No approved patient requests are waiting for transfer.");
-            return;
-        }
-        for (int i = 0; i < approvedRequests.size(); i++) {
-            BloodRequest request = approvedRequests.get(i);
-            System.out.println((i + 1) + ". ID: " + request.getTransactionId()
-                    + (restockTransfer ? " | Hospital stock restock" : " | Patient: " + request.getPatientId())
-                    + " | Hospital: " + request.getHospitalId()
-                    + " | Group: " + request.getBloodGroup() + " | Units: " + request.getUnitsRequested());
-        }
-        int index = readInt(scanner, "Select approved request to dispatch (1-" + approvedRequests.size() + "): ") - 1;
-        if (index < 0 || index >= approvedRequests.size()) {
-            System.out.println("Invalid selection.");
-            return;
-        }
-        dispatchApprovedRequest(scanner, approvedRequests.get(index));
-    }
-
-    private void dispatchApprovedRequest(Scanner scanner, BloodRequest request) {
-        String answer = ask(scanner, "Dispatch this approved request now? (YES/NO): ");
+        String answer = ask(scanner, "Approve this hospital stock request? (YES/NO): ");
         while (!"YES".equalsIgnoreCase(answer) && !"NO".equalsIgnoreCase(answer)) {
             System.out.println("Please enter YES or NO.");
-            answer = ask(scanner, "Dispatch this approved request now? (YES/NO): ");
+            answer = ask(scanner, "Approve this hospital stock request? (YES/NO): ");
         }
         if ("NO".equalsIgnoreCase(answer)) {
-            System.out.println("Request remains approved for later dispatch.");
+            request.rejectRequest();
+            Main.saveRequestsToFile();
+            return;
+        }
+        if (Main.inventory.getStockForGroup(request.getBloodGroup()) < request.getUnitsRequested()) {
+            System.out.println("There is not enough central stock. The request remains pending.");
             return;
         }
         Hospital destination = Hospital.findById(request.getHospitalId());
         if (destination == null) {
-            System.out.println("Error: Destination hospital not found.");
+            System.out.println("Error: Destination hospital not found. The request remains pending.");
             return;
         }
-        BloodBank source = Main.bloodBanks.isEmpty()
-                ? new BloodBank("CENTRAL_BB", "Central Blood Bank", "", "", "", Main.inventory)
-                : Main.bloodBanks.get(0);
-        source.transferBloodUnits(request, destination);
+        request.approveRequest();
+        BloodBank source = Main.bloodBanks.get(0);
+        if (!source.transferBloodUnits(request, destination)) {
+            request.setStatus("Pending");
+            return;
+        }
         Main.saveRequestsToFile();
         Main.saveTransfersToFile();
         Main.saveBloodUnitsToFile();

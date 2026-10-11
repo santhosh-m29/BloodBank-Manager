@@ -112,7 +112,7 @@ public class HospitalStaff extends Staff {
             System.out.println("Local inventory has enough stock. The request is ready to issue.");
         } else {
             System.out.println("Local stock: " + localStock
-                    + " units. The request needs blood bank approval for the shortage.");
+                    + " units. Submit a separate hospital stock request to refill this blood group.");
         }
         Main.saveRequestsToFile();
         System.out.println("Blood Request submitted. Request ID: " + request.getTransactionId()

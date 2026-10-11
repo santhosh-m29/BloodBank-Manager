@@ -228,18 +228,15 @@ public class Menu {
             System.out.println("Admin: " + admin.getName() + " | Facility: " + admin.getFacilityId());
             System.out.println("1. View Donations");
             System.out.println("2. Approve Passed Donations");
-            System.out.println("3. Approve/Reject Patient Blood Requests");
-            System.out.println("4. Approve/Reject Hospital Stock Requests");
-            System.out.println("5. Dispatch Patient Blood Transfer");
-            System.out.println("6. Dispatch Hospital Stock Transfer");
-            System.out.println("7. View Blood-Bank Inventory");
-            System.out.println("8. View Hospital Stock and Expiry Alerts");
-            System.out.println("9. View Hospital Stock Request History");
-            System.out.println("10. Manage Hospitals");
-            System.out.println("11. Change Password");
-            System.out.println("12. Logout");
+            System.out.println("3. Approve/Reject Hospital Stock Requests");
+            System.out.println("4. View Blood-Bank Inventory");
+            System.out.println("5. View Hospital Stock and Expiry Alerts");
+            System.out.println("6. View Hospital Stock Request History");
+            System.out.println("7. Manage Hospitals");
+            System.out.println("8. Change Password");
+            System.out.println("9. Logout");
             System.out.println("==================================================");
-            int choiceVal = readInt("Enter choice (1-12): ");
+            int choiceVal = readInt("Enter choice (1-9): ");
             switch (choiceVal) {
                 case 1:
                     System.out.println("\n--- Donations ---");
@@ -247,25 +244,22 @@ public class Menu {
                     for (BloodDonation donation : Main.donations) donation.displayTransaction();
                     break;
                 case 2: admin.approvePassedDonations(scanner); break;
-                case 3: admin.reviewPatientRequests(scanner); break;
-                case 4: admin.reviewHospitalRestockRequests(scanner); break;
-                case 5: admin.dispatchPatientTransfer(scanner); break;
-                case 6: admin.dispatchHospitalStockTransfer(scanner); break;
-                case 7:
+                case 3: admin.reviewHospitalRestockRequests(scanner); break;
+                case 4:
                     System.out.println("\nCentral Inventory Stock:");
                     Main.inventory.displayInventory();
                     break;
-                case 8:
+                case 5:
                     Main.alertManager.displayHospitalStock();
                     Main.alertManager.checkExpiry();
                     break;
-                case 9: admin.viewHospitalRestockHistory(scanner); break;
-                case 10: admin.manageFacilities(scanner); break;
-                case 11:
+                case 6: admin.viewHospitalRestockHistory(scanner); break;
+                case 7: admin.manageFacilities(scanner); break;
+                case 8:
                     String newPass = readString("Enter New Password: ");
                     Main.loginManager.changePassword(newPass);
                     break;
-                case 12:
+                case 9:
                     Main.loginManager.logoutUser();
                     return;
                 default:

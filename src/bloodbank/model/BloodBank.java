@@ -39,19 +39,15 @@ public class BloodBank extends Organization {
     }
 
     public boolean transferBloodUnits(BloodRequest request, Hospital destination) {
-        int localStock = destination.getInventory().getStockForGroup(request.getBloodGroup());
-        int unitsToMove = request.isHospitalRestockRequest()
-                ? request.getUnitsRequested()
-                : Math.max(0, request.getUnitsRequested() - localStock);
-        int available = Main.inventory.getStockForGroup(request.getBloodGroup());
-        if (available < unitsToMove) {
-            System.out.println("Insufficient central stock for this transfer. Request remains approved.");
+        if (!request.isHospitalRestockRequest()) {
+            System.out.println("Only hospital stock requests are transferred from the central bank.");
             return false;
         }
-        if (unitsToMove == 0) {
-            request.setStatus("READY");
-            System.out.println("Hospital already has enough stock. Request is ready to issue.");
-            return true;
+        int unitsToMove = request.getUnitsRequested();
+        int available = Main.inventory.getStockForGroup(request.getBloodGroup());
+        if (available < unitsToMove) {
+            System.out.println("Insufficient central stock for this transfer.");
+            return false;
         }
 
         int transferQuantity = unitsToMove;
@@ -78,13 +74,18 @@ public class BloodBank extends Organization {
 
         transfer.recordTransfer();
         Main.transfers.add(transfer);
-        if (request.isHospitalRestockRequest()) {
-            request.setStatus("COMPLETED");
-            System.out.println("Hospital restock dispatched. " + transferQuantity + " units were added to local stock.");
-        } else {
-            request.setStatus("READY");
-            System.out.println("Transfer dispatched successfully. " + transferQuantity
-                    + " units were transferred; the patient request is ready to issue.");
+        request.setStatus("COMPLETED");
+        System.out.println("Hospital stock request approved and transferred. "
+                + transferQuantity + " units were added to local stock.");
+        for (BloodRequest patientRequest : Main.requests) {
+            if (!patientRequest.isHospitalRestockRequest()
+                    && patientRequest.getHospitalId().equals(destination.getOrganizationId())
+                    && patientRequest.getBloodGroup().equalsIgnoreCase(request.getBloodGroup())
+                    && "PENDING".equalsIgnoreCase(patientRequest.getStatus())
+                    && destination.getInventory().getStockForGroup(patientRequest.getBloodGroup())
+                    >= patientRequest.getUnitsRequested()) {
+                patientRequest.setStatus("READY");
+            }
         }
         return true;
     }
