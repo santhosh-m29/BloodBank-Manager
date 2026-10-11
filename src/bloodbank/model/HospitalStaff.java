@@ -146,10 +146,20 @@ public class HospitalStaff extends Staff {
             return;
         }
         for (int i = 0; i < readyRequests.size(); i++) {
+            for (int j = i + 1; j < readyRequests.size(); j++) {
+                if (readyRequests.get(j).getUrgencyRank() < readyRequests.get(i).getUrgencyRank()) {
+                    BloodRequest temporary = readyRequests.get(i);
+                    readyRequests.set(i, readyRequests.get(j));
+                    readyRequests.set(j, temporary);
+                }
+            }
+        }
+        for (int i = 0; i < readyRequests.size(); i++) {
             BloodRequest request = readyRequests.get(i);
             System.out.println((i + 1) + ". Request " + request.getTransactionId()
                     + " (Patient ID: " + request.getPatientId() + ") - Group: "
-                    + request.getBloodGroup() + " | Units: " + request.getUnitsRequested());
+                    + request.getBloodGroup() + " | Units: " + request.getUnitsRequested()
+                    + " | Priority: " + request.getUrgency());
         }
         int index = askInt(scanner, "Select Request (1-" + readyRequests.size() + "): ") - 1;
         if (index < 0 || index >= readyRequests.size()) {
