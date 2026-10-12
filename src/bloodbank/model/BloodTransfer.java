@@ -7,7 +7,7 @@ public class BloodTransfer extends Transaction {
     private int unitsTransferred;
 
     public BloodTransfer(String transactionId, String transactionDate, String status,
-                         String sourceFacilityId, String destinationFacilityId, String bloodGroup, int unitsTransferred) {
+            String sourceFacilityId, String destinationFacilityId, String bloodGroup, int unitsTransferred) {
         super(transactionId, transactionDate, status);
         this.sourceFacilityId = sourceFacilityId;
         this.destinationFacilityId = destinationFacilityId;

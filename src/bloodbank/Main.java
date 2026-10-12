@@ -61,7 +61,7 @@ public class Main {
 
         // Initialize Services
         loginManager = new LoginManager();
-        alertManager = new AlertManager(7); // alert window for expiry = 7 days
+        alertManager = new AlertManager(7);
 
         // Load Persistent Data
         FileManager fm = new FileManager();
@@ -128,7 +128,7 @@ public class Main {
             adminsChanged = true;
         }
         if (admins.isEmpty()) {
-            admins.add(new BloodBankAdmin("ADM001", "City Blood Bank Admin", 35, "Male", "9999999999", "City Blood Center", "admin", "admin123", "BLOOD_BANK_ADMIN", "EMP001", "BB001"));
+            admins.add(new BloodBankAdmin("ADM001", "Blood Bank Admin", 35, "Male", "9999999999", "City Blood Center", "admin", "admin123", "BLOOD_BANK_ADMIN", "EMP001", "BB001"));
             adminsChanged = true;
         }
         if (adminsChanged) {
