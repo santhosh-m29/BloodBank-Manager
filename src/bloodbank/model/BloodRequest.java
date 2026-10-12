@@ -73,6 +73,10 @@ public class BloodRequest extends Transaction {
     }
 
     public int getUrgencyRank() {
+        return getUrgencyRank(urgency);
+    }
+
+    public int getUrgencyRank(String urgency) {
         if ("CRITICAL".equalsIgnoreCase(urgency)) return 1;
         if ("HIGH".equalsIgnoreCase(urgency)) return 2;
         if ("NORMAL".equalsIgnoreCase(urgency) || "MEDIUM".equalsIgnoreCase(urgency)) return 3;
