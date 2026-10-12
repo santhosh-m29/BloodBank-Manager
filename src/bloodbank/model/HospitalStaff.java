@@ -115,33 +115,41 @@ public class HospitalStaff extends Staff {
             System.out.println("Quantity must be positive.");
             return null;
         }
-        System.out.println("Urgency: 1. LOW  2. NORMAL  3. HIGH  4. CRITICAL");
-        System.out.print("Choose urgency (1-4): ");
-        int urgencyChoice;
-        try {
-            urgencyChoice = Integer.parseInt(Main.sc.nextLine().trim());
-        } catch (NumberFormatException e) {
-            System.out.println("Invalid urgency. Request was not created.");
-            return null;
+        System.out.print("Does the patient have an urgent need? (Yes/No): ");
+        String hasUrgency = Main.sc.nextLine().trim();
+        while (!hasUrgency.equalsIgnoreCase("yes") && !hasUrgency.equalsIgnoreCase("no")) {
+            System.out.print("Please enter Yes or No: ");
+            hasUrgency = Main.sc.nextLine().trim();
         }
-        while (urgencyChoice < 1 || urgencyChoice > 4) {
-            System.out.println("Choose a number from 1 to 4.");
-            System.out.print("Choose urgency: ");
+
+        BloodRequest request;
+        if (hasUrgency.equalsIgnoreCase("yes")) {
+            System.out.println("Urgency: 1. LOW  2. NORMAL  3. HIGH  4. CRITICAL");
+            System.out.print("Choose urgency (1-4): ");
+            int urgencyChoice;
             try {
                 urgencyChoice = Integer.parseInt(Main.sc.nextLine().trim());
             } catch (NumberFormatException e) {
                 System.out.println("Invalid urgency. Request was not created.");
                 return null;
             }
-        }
-        String urgency = "NORMAL";
-        if (urgencyChoice == 1) urgency = "LOW";
-        else if (urgencyChoice == 3) urgency = "HIGH";
-        else if (urgencyChoice == 4) urgency = "CRITICAL";
+            if (urgencyChoice < 1 || urgencyChoice > 4) {
+                System.out.println("Invalid urgency. Request was not created.");
+                return null;
+            }
+            String urgency = "NORMAL";
+            if (urgencyChoice == 1) urgency = "LOW";
+            else if (urgencyChoice == 3) urgency = "HIGH";
+            else if (urgencyChoice == 4) urgency = "CRITICAL";
 
-        BloodRequest request = new BloodRequest(Main.nextId("REQ"),
-                LocalDate.now().toString(), "Pending", selected.getPersonId(), facilityId,
-                selected.getBloodGroup(), quantity, urgency);
+            request = new BloodRequest(Main.nextId("REQ"), LocalDate.now().toString(),
+                    "Pending", selected.getPersonId(), facilityId,
+                    selected.getBloodGroup(), quantity, urgency);
+        } else {
+            request = new BloodRequest(Main.nextId("REQ"), LocalDate.now().toString(),
+                    "Pending", selected.getPersonId(), facilityId,
+                    selected.getBloodGroup(), quantity);
+        }
         Hospital hospital = Hospital.findById(facilityId);
         int localStock = hospital == null ? 0
                 : hospital.getInventory().getStockForGroup(selected.getBloodGroup());
