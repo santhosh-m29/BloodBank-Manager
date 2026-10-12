@@ -1,1 +1,1 @@
-ADM001,System Administrator,35,Male,9999999999,Blood Bank HQ,admin,admin123,BLOOD_BANK_ADMIN,EMP001,BB001
+ADM001,Administrator,35,Male,9999999999,Blood Bank HQ,admin,admin123,BLOOD_BANK_ADMIN,EMP001,BB001

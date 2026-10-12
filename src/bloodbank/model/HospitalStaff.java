@@ -126,7 +126,7 @@ public class HospitalStaff extends Staff {
         }
         while (urgencyChoice < 1 || urgencyChoice > 4) {
             System.out.println("Choose a number from 1 to 4.");
-            System.out.print("Choose urgency (1-4): ");
+            System.out.print("Choose urgency: ");
             try {
                 urgencyChoice = Integer.parseInt(Main.sc.nextLine().trim());
             } catch (NumberFormatException e) {
@@ -217,7 +217,7 @@ public class HospitalStaff extends Staff {
         if (available < request.getUnitsRequested()) {
             int stock = hospital.getInventory().getStockForGroup(request.getBloodGroup());
             System.out.println("Error: Insufficient local inventory of " + request.getBloodGroup()
-                    + ". Local stock: " + stock + " units. Requested: " + request.getUnitsRequested());
+                    + ". Local stock: " + stock + " units. Please Request: " + request.getUnitsRequested()+ " units");
             return;
         }
         int remaining = request.getUnitsRequested();

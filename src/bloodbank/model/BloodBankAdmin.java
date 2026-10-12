@@ -27,7 +27,7 @@ public class BloodBankAdmin extends Staff {
                     + " | Group: " + donation.getBloodGroup()
                     + " | Units: " + donation.getQuantity());
         }
-        System.out.print("Select donation (1-" + pendingDonations.size() + "): ");
+        System.out.print("Select donation: ");
         int index;
         try {
             index = Integer.parseInt(Main.sc.nextLine().trim()) - 1;

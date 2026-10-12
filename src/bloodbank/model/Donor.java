@@ -120,7 +120,7 @@ public class Donor extends Person {
         
         if (age < 18 || age > 65) return false;
         if (weight < 50.0) return false;
-        if (haemoglobin < 12.5) return false;
+        if (haemoglobin < 12.5 && haemoglobin > 17.5) return false;
         if (!Validation.validateBloodGroup(bloodGroup)) return false;
         
         if (lastDonationDate != null && !lastDonationDate.trim().isEmpty()) {
