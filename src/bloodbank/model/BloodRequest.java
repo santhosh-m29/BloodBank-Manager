@@ -8,6 +8,12 @@ public class BloodRequest extends Transaction {
     private String urgency; // LOW, NORMAL, HIGH, or CRITICAL
 
     public BloodRequest(String transactionId, String transactionDate, String status,
+                        String patientId, String hospitalId, String bloodGroup, int unitsRequested) {
+        this(transactionId, transactionDate, status, patientId, hospitalId,
+                bloodGroup, unitsRequested, "NORMAL");
+    }
+
+    public BloodRequest(String transactionId, String transactionDate, String status,
                         String patientId, String hospitalId, String bloodGroup, int unitsRequested, String urgency) {
         super(transactionId, transactionDate, status);
         this.patientId = patientId;
