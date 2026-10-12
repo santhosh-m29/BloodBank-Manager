@@ -31,27 +31,8 @@ public class AlertManager {
     public void checkExpiry() {
         LocalDate now = LocalDate.now();
         boolean alertGenerated = false;
-        
-        System.out.println("\n[ALERT MONITOR] Running unit expiry check (Alert window: " + expiryAlertDays + " days)...");
-        
-        // 1. Check Central Blood Bank Units
-        for (BloodUnit bu : Main.inventory.getBloodUnits()) {
-            if (bu.isExpired()) {
-                System.out.println("  >> [BB CRITICAL] Expired Unit " + bu.getBloodUnitId() + " (" + bu.getBloodGroup() + ") in Blood Bank! Expiry: " + bu.getExpiryDate());
-                alertGenerated = true;
-            } else {
-                try {
-                    LocalDate exp = LocalDate.parse(bu.getExpiryDate().trim());
-                    long days = ChronoUnit.DAYS.between(now, exp);
-                    if (days <= expiryAlertDays) {
-                        System.out.println("  >> [BB WARNING] Unit " + bu.getBloodUnitId() + " (" + bu.getBloodGroup() + ") expires in " + days + " days (Date: " + bu.getExpiryDate() + ")");
-                        alertGenerated = true;
-                    }
-                } catch (DateTimeParseException ignored) {}
-            }
-        }
 
-        // 2. Check Hospitals' Units
+        // Check Hospitals' Units
         for (Hospital h : Main.hospitals) {
             for (BloodUnit bu : h.getInventory().getBloodUnits()) {
                 if (bu.isExpired()) {

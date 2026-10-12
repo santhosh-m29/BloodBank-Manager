@@ -39,7 +39,7 @@ public class BloodUnit {
     public void setStatus(String status) { this.status = status; }
 
     public boolean runLabTests(Donor donor, LocalDate today) {
-        System.out.println("\n[LAB TEST] Initiating screening for infectious pathogens (HIV, HBV, HCV, Syphilis) on Unit: " + bloodUnitId);
+        System.out.println("\nInitiating Lab Test: " + bloodUnitId);
         boolean passed = donor != null && today != null && donor.checkEligibility()
                 && donor.getBloodGroup().equalsIgnoreCase(bloodGroup) && !isExpired();
         if (passed) {

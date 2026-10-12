@@ -26,8 +26,8 @@ public class LoginManager {
     public void registerUser() {
         System.out.println("\n--- User Registration ---");
         System.out.println("Select Registration Role:");
-        System.out.println("1. Donor\n2. Patient\n3. Hospital Staff");
-        System.out.print("Enter choice (1-3): ");
+        System.out.println("1. Donor\n2. Hospital Staff");
+        System.out.print("Enter choice: ");
         int roleChoice;
         try {
             roleChoice = Integer.parseInt(Main.sc.nextLine().trim());
@@ -50,7 +50,7 @@ public class LoginManager {
         System.out.print("Enter Phone Number: ");
         String phone = Main.sc.nextLine().trim();
         while (!Validation.validatePhoneNumber(phone)) {
-            System.out.println("Invalid phone (must be 10 digits).");
+            System.out.println("Invalid phone");
             System.out.print("Enter Phone Number: ");
             phone = Main.sc.nextLine().trim();
         }
@@ -90,26 +90,6 @@ public class LoginManager {
             Main.saveDonorsToFile();
             System.out.println("Donor registered successfully! Your ID is: " + id);
         } else if (roleChoice == 2) {
-            String group = readBloodGroup("Blood Group Required (e.g. B+, AB-): ");
-            System.out.print("Disease/Reason for Request: ");
-            String disease = Main.sc.nextLine().trim();
-            System.out.print("Referring Doctor: ");
-            String doctor = Main.sc.nextLine().trim();
-            System.out.print("Units Required: ");
-            int units;
-            try {
-                units = Integer.parseInt(Main.sc.nextLine().trim());
-            } catch (NumberFormatException e) {
-                System.out.println("Invalid number of units. Registration cancelled.");
-                return;
-            }
-            String hospitalId = chooseHospital();
-            String id = Main.nextId("PAT");
-            Main.patients.add(new Patient(id, name, age, gender, phone, address,
-                    username, password, "PATIENT", group, disease, doctor, units, hospitalId));
-            Main.savePatientsToFile();
-            System.out.println("Patient registered successfully! Your ID is: " + id);
-        } else if (roleChoice == 3) {
             String hospitalId = chooseHospital();
             System.out.print("Enter Department: ");
             String department = Main.sc.nextLine().trim();

@@ -19,7 +19,7 @@ public class ResetData {
         if (!dataFolder.exists()) dataFolder.mkdirs();
 
         String[] admins = {
-            "ADM001,System Administrator,35,Male,9999999999,Blood Bank HQ,admin,admin123,BLOOD_BANK_ADMIN,EMP001,BB001"
+            "ADM001,Administrator,35,Male,9999999999,Blood Bank HQ,admin,admin123,BLOOD_BANK_ADMIN,EMP001,BB001"
         };
         String[] bloodBanks = {
             "BB001,City Blood Center,100 Central Ave,555-0100,Dr. Adams"

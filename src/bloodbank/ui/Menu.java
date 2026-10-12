@@ -12,15 +12,15 @@ public class Menu {
             System.out.println("     BLOOD BANK MANAGEMENT SYSTEM - MAIN MENU     ");
             System.out.println("==================================================");
             System.out.println("1. Login");
-            System.out.println("2. Register New User (Donor / Patient / Staff)");
+            System.out.println("2. Register New User");
             System.out.println("3. Exit System");
             System.out.println("==================================================");
-            System.out.print("Enter choice (1-3): ");
+            System.out.print("Enter choice: ");
             int choiceVal;
             try {
                 choiceVal = Integer.parseInt(Main.sc.nextLine().trim());
             } catch (NumberFormatException e) {
-                System.out.println("Invalid choice. Enter a number from 1 to 3.");
+                System.out.println("Invalid choice");
                 continue;
             }
             if (choiceVal == 1) {
@@ -29,10 +29,10 @@ public class Menu {
                 Main.loginManager.registerUser();
             } else if (choiceVal == 3) {
                 Main.closeApplication();
-                System.out.println("Goodbye!");
+                System.out.println("Goodbye");
                 System.exit(0);
             } else {
-                System.out.println("Invalid choice. Try again.");
+                System.out.println("Invalid choice");
             }
         }
     }
@@ -78,12 +78,12 @@ public class Menu {
             System.out.println("6. Change Password");
             System.out.println("7. Logout");
             System.out.println("==================================================");
-            System.out.print("Enter choice (1-7): ");
+            System.out.print("Enter choice: ");
             int choiceVal;
             try {
                 choiceVal = Integer.parseInt(Main.sc.nextLine().trim());
             } catch (NumberFormatException e) {
-                System.out.println("Invalid choice. Enter a number from 1 to 7.");
+                System.out.println("Invalid choice");
                 continue;
             }
             switch (choiceVal) {
@@ -126,12 +126,12 @@ public class Menu {
             System.out.println("4. Change Password");
             System.out.println("5. Logout");
             System.out.println("==================================================");
-            System.out.print("Enter choice (1-5): ");
+            System.out.print("Enter choice: ");
             int choiceVal;
             try {
                 choiceVal = Integer.parseInt(Main.sc.nextLine().trim());
             } catch (NumberFormatException e) {
-                System.out.println("Invalid choice. Enter a number from 1 to 5.");
+                System.out.println("Invalid choice");
                 continue;
             }
             switch (choiceVal) {
@@ -170,7 +170,7 @@ public class Menu {
             System.out.println("Staff: " + staff.getName() + " | Facility: " + (hospital != null ? hospital.getOrganizationName() : "N/A"));
             System.out.println("1. Register Patient");
             System.out.println("2. Create Blood Request");
-            System.out.println("3. Check Hospital Stock");
+            System.out.println("3. View Hospital Inventory");
             System.out.println("4. Issue Blood to Patient");
             System.out.println("5. Request Restock from Blood Bank");
             System.out.println("6. View Patient Request History");
@@ -178,12 +178,12 @@ public class Menu {
             System.out.println("8. Change Password");
             System.out.println("9. Logout");
             System.out.println("==================================================");
-            System.out.print("Enter choice (1-9): ");
+            System.out.print("Enter choice: ");
             int choiceVal;
             try {
                 choiceVal = Integer.parseInt(Main.sc.nextLine().trim());
             } catch (NumberFormatException e) {
-                System.out.println("Invalid choice. Enter a number from 1 to 9.");
+                System.out.println("Invalid choice");
                 continue;
             }
             switch (choiceVal) {
@@ -236,21 +236,21 @@ public class Menu {
             System.out.println("==================================================");
             System.out.println("Admin: " + admin.getName() + " | Facility: " + admin.getFacilityId());
             System.out.println("1. View Donations");
-            System.out.println("2. Approve Passed Donations");
-            System.out.println("3. Approve/Reject Hospital Stock Requests");
+            System.out.println("2. Approve Donations");
+            System.out.println("3. Approve Hospital Stock Requests");
             System.out.println("4. View Blood-Bank Inventory");
-            System.out.println("5. View Hospital Stock and Expiry Alerts");
+            System.out.println("5. View Hospital Stocks");
             System.out.println("6. View Hospital Stock Request History");
             System.out.println("7. Manage Hospitals");
             System.out.println("8. Change Password");
             System.out.println("9. Logout");
             System.out.println("==================================================");
-            System.out.print("Enter choice (1-9): ");
+            System.out.print("Enter choice: ");
             int choiceVal;
             try {
                 choiceVal = Integer.parseInt(Main.sc.nextLine().trim());
             } catch (NumberFormatException e) {
-                System.out.println("Invalid choice. Enter a number from 1 to 9.");
+                System.out.println("Invalid choice");
                 continue;
             }
             switch (choiceVal) {

@@ -76,7 +76,7 @@ public class BloodBankAdmin extends Staff {
     }
 
     public void reviewHospitalRestockRequests() {
-        System.out.println("\n--- Approve/Reject Hospital Stock Requests ---");
+        System.out.println("\n--- Approve Hospital Stock Requests ---");
         ArrayList<BloodRequest> requests = getPendingRestockRequests();
         if (requests.isEmpty()) {
             System.out.println("No hospital stock requests need review.");

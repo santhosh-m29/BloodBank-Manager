@@ -35,7 +35,7 @@ The program creates example records the first time it starts. A new setup starts
 
 1. **Donor:** checks eligibility, submits a donation, and enters the simulated lab result immediately after collection. A failed unit is rejected. A passed unit is added to central stock immediately.
 2. **Hospital staff:** registers patients at their own hospital and submits requests using the patient's blood group. If local inventory has enough stock, the request is ready to issue.
-3. **Blood bank admin:** uses one **Approve/Reject Requests & Dispatch Transfer** option. Pending requests ask for YES/NO approval; approved requests ask separately for YES/NO dispatch. The admin transfers only the shortage from central inventory.
+3. **Blood bank admin:** uses one **Approve Requests & Dispatch Transfer** option. Pending requests ask for YES/NO approval; approved requests ask separately for YES/NO dispatch. The admin transfers only the shortage from central inventory.
 4. **Hospital staff:** issues a ready request from local inventory. The request is then marked completed.
 5. **Patient:** views their request status and history.
 

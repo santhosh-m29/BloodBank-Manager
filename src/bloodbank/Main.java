@@ -133,7 +133,7 @@ public class Main {
         }
         if (adminsChanged) {
             saveAdminsToFile();
-            System.out.println("Central blood bank admin account initialized.");
+            System.out.println("Blood bank admin account initialized.");
         }
 
         if (hospitalStaffs.size() < 2) {
