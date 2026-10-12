@@ -46,7 +46,7 @@ public class Menu {
 
         boolean authenticated = Main.loginManager.authenticateUser(username, password);
         if (authenticated) {
-            Person<?> user = Main.loginManager.getLoggedInUser();
+            Person user = Main.loginManager.getLoggedInUser();
             System.out.println("\nLogin Successful! Welcome, " + user.getName() + " [" + user.getRole() + "]");
             
             if ("BLOOD_BANK_ADMIN".equalsIgnoreCase(user.getRole())) {

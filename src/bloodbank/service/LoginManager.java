@@ -3,11 +3,12 @@ package bloodbank.service;
 import bloodbank.Main;
 import bloodbank.model.*;
 import bloodbank.utility.Validation;
+import java.util.List;
 
 public class LoginManager {
     private String username;
     private String password;
-    private Person<?> loggedInUser;
+    private Person loggedInUser;
 
     public LoginManager() {
         this.username = "";
@@ -16,10 +17,16 @@ public class LoginManager {
     }
 
     public boolean isUsernameTaken(String username) {
-        for (BloodBankAdmin admin : Main.admins) if (admin.getUsername().equalsIgnoreCase(username)) return true;
-        for (HospitalStaff staff : Main.hospitalStaffs) if (staff.getUsername().equalsIgnoreCase(username)) return true;
-        for (Donor donor : Main.donors) if (donor.getUsername().equalsIgnoreCase(username)) return true;
-        for (Patient patient : Main.patients) if (patient.getUsername().equalsIgnoreCase(username)) return true;
+        return usernameExists(Main.admins, username)
+                || usernameExists(Main.hospitalStaffs, username)
+                || usernameExists(Main.donors, username)
+                || usernameExists(Main.patients, username);
+    }
+
+    private <T extends Person> boolean usernameExists(List<T> people, String username) {
+        for (T person : people) {
+            if (person.getUsername().equalsIgnoreCase(username)) return true;
+        }
         return false;
     }
 
@@ -134,7 +141,7 @@ public class LoginManager {
     public String getPassword() { return password; }
     public void setPassword(String password) { this.password = password; }
 
-    public Person<?> getLoggedInUser() { return loggedInUser; }
+    public Person getLoggedInUser() { return loggedInUser; }
 
     public boolean authenticateUser(String username, String password) {
         // 1. Check Blood Bank Admins

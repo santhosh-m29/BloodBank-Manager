@@ -1,6 +1,6 @@
 package bloodbank.model;
 
-public abstract class Person<T extends Person<?>> {
+public abstract class Person {
     protected String personId;
     protected String name;
     protected int age;

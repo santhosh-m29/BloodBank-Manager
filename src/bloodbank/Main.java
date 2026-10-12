@@ -245,22 +245,26 @@ public class Main {
 
     public static String nextId(String prefix) {
         int largest = 0;
-        for (BloodBankAdmin admin : admins) {
-            largest = Math.max(largest, idNumber(admin.getPersonId(), prefix));
-            largest = Math.max(largest, idNumber(admin.getEmployeeId(), prefix));
-        }
-        for (HospitalStaff staff : hospitalStaffs) {
-            largest = Math.max(largest, idNumber(staff.getPersonId(), prefix));
-            largest = Math.max(largest, idNumber(staff.getEmployeeId(), prefix));
-        }
-        for (Person<?> person : donors) largest = Math.max(largest, idNumber(person.getPersonId(), prefix));
-        for (Person<?> person : patients) largest = Math.max(largest, idNumber(person.getPersonId(), prefix));
+        largest = Math.max(largest, largestPersonId(admins, prefix));
+        largest = Math.max(largest, largestPersonId(hospitalStaffs, prefix));
+        largest = Math.max(largest, largestPersonId(donors, prefix));
+        largest = Math.max(largest, largestPersonId(patients, prefix));
+        for (BloodBankAdmin admin : admins) largest = Math.max(largest, idNumber(admin.getEmployeeId(), prefix));
+        for (HospitalStaff staff : hospitalStaffs) largest = Math.max(largest, idNumber(staff.getEmployeeId(), prefix));
         for (BloodDonation donation : donations) largest = Math.max(largest, idNumber(donation.getTransactionId(), prefix));
         for (BloodRequest request : requests) largest = Math.max(largest, idNumber(request.getTransactionId(), prefix));
         for (BloodTransfer transfer : transfers) largest = Math.max(largest, idNumber(transfer.getTransactionId(), prefix));
         for (Hospital hospital : hospitals) largest = Math.max(largest, idNumber(hospital.getOrganizationId(), prefix));
         for (BloodBank bank : bloodBanks) largest = Math.max(largest, idNumber(bank.getOrganizationId(), prefix));
         return prefix + String.format("%03d", largest + 1);
+    }
+
+    private static <T extends Person> int largestPersonId(List<T> people, String prefix) {
+        int largest = 0;
+        for (T person : people) {
+            largest = Math.max(largest, idNumber(person.getPersonId(), prefix));
+        }
+        return largest;
     }
 
     private static int idNumber(String id, String prefix) {

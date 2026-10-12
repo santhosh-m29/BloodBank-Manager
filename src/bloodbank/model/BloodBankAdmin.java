@@ -6,7 +6,7 @@ import bloodbank.utility.Validation;
 import java.time.LocalDate;
 import java.util.ArrayList;
 
-public class BloodBankAdmin extends Staff<BloodBankAdmin> {
+public class BloodBankAdmin extends Staff {
     public void approvePassedDonations() {
         ArrayList<BloodDonation> pendingDonations = new ArrayList<>();
         for (BloodDonation donation : Main.donations) {

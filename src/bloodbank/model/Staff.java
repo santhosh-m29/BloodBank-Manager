@@ -1,6 +1,6 @@
 package bloodbank.model;
 
-public abstract class Staff<T extends Staff<?>> extends Person<T> {
+public abstract class Staff extends Person {
     protected String employeeId;
     protected String facilityId; // Valid Hospital or Blood Bank ID
 
