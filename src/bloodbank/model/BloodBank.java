@@ -73,7 +73,7 @@ public class BloodBank extends Organization {
         }
 
         transfer.recordTransfer();
-        Main.transfers.add(transfer);
+        new TransactionManager<BloodTransfer>(Main.transfers).add(transfer);
         request.setStatus("COMPLETED");
         System.out.println("Hospital stock request approved and transferred. "
                 + transferQuantity + " units were added to local stock.");

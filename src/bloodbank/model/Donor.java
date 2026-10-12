@@ -189,7 +189,7 @@ public class Donor extends Person {
             donation.setStatus("REJECTED");
             System.out.println("Failed blood was not added to stock.");
         }
-        Main.donations.add(donation);
+        new TransactionManager<BloodDonation>(Main.donations).add(donation);
         lastDonationDate = today;
         eligible = checkEligibility();
         System.out.println("Donation saved. Donation ID: " + donation.getTransactionId()

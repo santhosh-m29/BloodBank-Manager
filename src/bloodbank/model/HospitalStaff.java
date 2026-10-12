@@ -1,6 +1,7 @@
 package bloodbank.model;
 
 import bloodbank.Main;
+import bloodbank.utility.InvalidBloodGroupException;
 import bloodbank.utility.Validation;
 
 import java.time.LocalDate;
@@ -154,7 +155,7 @@ public class HospitalStaff extends Staff {
         int localStock = hospital == null ? 0
                 : hospital.getInventory().getStockForGroup(selected.getBloodGroup());
         if (localStock >= quantity) request.setStatus("READY");
-        Main.requests.add(request);
+        new TransactionManager<BloodRequest>(Main.requests).add(request);
         if ("READY".equalsIgnoreCase(request.getStatus())) {
             System.out.println("Local inventory has enough stock. The request is ready to issue.");
         } else {
@@ -251,10 +252,15 @@ public class HospitalStaff extends Staff {
         System.out.println("\n--- Request Restock from Blood Bank ---");
         System.out.print("Blood Group to Restock: ");
         String bloodGroup = Main.sc.nextLine().trim();
-        while (!Validation.validateBloodGroup(bloodGroup)) {
-            System.out.println("Invalid blood group.");
-            System.out.print("Blood Group to Restock: ");
-            bloodGroup = Main.sc.nextLine().trim();
+        while (true) {
+            try {
+                Validation.checkBloodGroup(bloodGroup);
+                break;
+            } catch (InvalidBloodGroupException e) {
+                System.out.println(e.getMessage());
+                System.out.print("Blood Group to Restock: ");
+                bloodGroup = Main.sc.nextLine().trim();
+            }
         }
         System.out.print("Units to Request: ");
         int quantity;
@@ -271,7 +277,7 @@ public class HospitalStaff extends Staff {
         BloodRequest request = new BloodRequest(Main.nextId("REQ"),
                 LocalDate.now().toString(), "Pending", "", facilityId,
                 bloodGroup, quantity, "NORMAL");
-        Main.requests.add(request);
+        new TransactionManager<BloodRequest>(Main.requests).add(request);
         Main.saveRequestsToFile();
         System.out.println("Hospital stock request sent to central Blood Bank. ID: " + request.getTransactionId());
         return request;

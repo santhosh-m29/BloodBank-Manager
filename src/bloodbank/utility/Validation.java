@@ -5,15 +5,22 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 
 public class Validation {
+    private static final String[] BLOOD_GROUPS = {
+            "A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"
+    };
+
     public static boolean validateBloodGroup(String group) {
         if (group == null) return false;
-        String[] groups = {"A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"};
-        for (String g : groups) {
-            if (g.equalsIgnoreCase(group)) {
-                return true;
-            }
+        for (String bloodGroup : BLOOD_GROUPS) {
+            if (bloodGroup.equalsIgnoreCase(group.trim())) return true;
         }
         return false;
+    }
+
+    public static void checkBloodGroup(String group) throws InvalidBloodGroupException {
+        if (!validateBloodGroup(group)) {
+            throw new InvalidBloodGroupException("Invalid blood group. Enter a valid group such as A+ or O-.");
+        }
     }
 
     public static boolean validatePhoneNumber(String phone) {

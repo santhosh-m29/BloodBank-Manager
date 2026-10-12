@@ -1,6 +1,18 @@
 package bloodbank.model;
 
+import java.util.HashMap;
+
 public class BloodRequest extends Transaction {
+    private static final HashMap<String, Integer> PRIORITY = new HashMap<>();
+
+    static {
+        PRIORITY.put("CRITICAL", 1);
+        PRIORITY.put("HIGH", 2);
+        PRIORITY.put("NORMAL", 3);
+        PRIORITY.put("MEDIUM", 3);
+        PRIORITY.put("LOW", 4);
+    }
+
     private String patientId;
     private String hospitalId;
     private String bloodGroup;
@@ -73,13 +85,8 @@ public class BloodRequest extends Transaction {
     }
 
     public int getUrgencyRank() {
-        return getUrgencyRank(urgency);
-    }
-
-    public int getUrgencyRank(String urgency) {
-        if ("CRITICAL".equalsIgnoreCase(urgency)) return 1;
-        if ("HIGH".equalsIgnoreCase(urgency)) return 2;
-        if ("NORMAL".equalsIgnoreCase(urgency) || "MEDIUM".equalsIgnoreCase(urgency)) return 3;
-        return 4;
+        if (urgency == null) return 4;
+        Integer rank = PRIORITY.get(urgency.toUpperCase());
+        return rank == null ? 4 : rank;
     }
 }

@@ -143,47 +143,25 @@ public class LoginManager {
 
     public Person getLoggedInUser() { return loggedInUser; }
 
+    private <T extends Person> Person findPerson(List<T> people, String username) {
+        for (T person : people) {
+            if (person.getUsername().equalsIgnoreCase(username)) return person;
+        }
+        return null;
+    }
+
     public boolean authenticateUser(String username, String password) {
-        // 1. Check Blood Bank Admins
-        for (BloodBankAdmin admin : Main.admins) {
-            if (admin.getUsername().equalsIgnoreCase(username) && admin.getPassword().equals(password)) {
-                this.username = username;
-                this.password = password;
-                this.loggedInUser = admin;
-                return true;
-            }
-        }
-        
-        // 2. Check Hospital Staff
-        for (HospitalStaff staff : Main.hospitalStaffs) {
-            if (staff.getUsername().equalsIgnoreCase(username) && staff.getPassword().equals(password)) {
-                this.username = username;
-                this.password = password;
-                this.loggedInUser = staff;
-                return true;
-            }
-        }
+        Person person = findPerson(Main.admins, username);
+        if (person == null) person = findPerson(Main.hospitalStaffs, username);
+        if (person == null) person = findPerson(Main.donors, username);
+        if (person == null) person = findPerson(Main.patients, username);
 
-        // 3. Check Donors
-        for (Donor donor : Main.donors) {
-            if (donor.getUsername().equalsIgnoreCase(username) && donor.getPassword().equals(password)) {
-                this.username = username;
-                this.password = password;
-                this.loggedInUser = donor;
-                return true;
-            }
+        if (person != null && person.getPassword().equals(password)) {
+            this.username = username;
+            this.password = password;
+            this.loggedInUser = person;
+            return true;
         }
-
-        // 4. Check Patients
-        for (Patient patient : Main.patients) {
-            if (patient.getUsername().equalsIgnoreCase(username) && patient.getPassword().equals(password)) {
-                this.username = username;
-                this.password = password;
-                this.loggedInUser = patient;
-                return true;
-            }
-        }
-
         return false;
     }
 

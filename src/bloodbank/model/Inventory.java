@@ -53,9 +53,15 @@ public class Inventory {
     }
 
     public int getStockForGroup(String bloodGroup) {
+        return getStockForGroup(bloodGroup, "AVAILABLE");
+    }
+
+    public int getStockForGroup(String bloodGroup, String status) {
         int qty = 0;
         for (BloodUnit bu : bloodUnits) {
-            if (bu.getBloodGroup().equalsIgnoreCase(bloodGroup) && "AVAILABLE".equalsIgnoreCase(bu.getStatus()) && !bu.isExpired()) {
+            if (bu.getBloodGroup().equalsIgnoreCase(bloodGroup)
+                    && status.equalsIgnoreCase(bu.getStatus())
+                    && (!"AVAILABLE".equalsIgnoreCase(status) || !bu.isExpired())) {
                 qty += bu.getQuantity();
             }
         }
