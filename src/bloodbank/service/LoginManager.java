@@ -7,7 +7,7 @@ import bloodbank.utility.Validation;
 public class LoginManager {
     private String username;
     private String password;
-    private Person loggedInUser;
+    private Person<?> loggedInUser;
 
     public LoginManager() {
         this.username = "";
@@ -111,9 +111,8 @@ public class LoginManager {
 
     private String chooseHospital() {
         System.out.println("Available Hospitals:");
-        for (Hospital hospital : Main.hospitals) {
-            System.out.println(" - " + hospital.getOrganizationId() + ": " + hospital.getOrganizationName());
-        }
+        Main.hospitals.forEach(hospital -> System.out.println(
+                " - " + hospital.getOrganizationId() + ": " + hospital.getOrganizationName()));
         System.out.print("Enter Hospital ID: ");
         return Main.sc.nextLine().trim();
     }
@@ -135,7 +134,7 @@ public class LoginManager {
     public String getPassword() { return password; }
     public void setPassword(String password) { this.password = password; }
 
-    public Person getLoggedInUser() { return loggedInUser; }
+    public Person<?> getLoggedInUser() { return loggedInUser; }
 
     public boolean authenticateUser(String username, String password) {
         // 1. Check Blood Bank Admins

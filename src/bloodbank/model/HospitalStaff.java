@@ -7,7 +7,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
-public class HospitalStaff extends Staff {
+public class HospitalStaff extends Staff<HospitalStaff> {
     private String department;
 
     public HospitalStaff(String personId, String name, int age, String gender, String phoneNumber, String address,

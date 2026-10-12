@@ -253,8 +253,8 @@ public class Main {
             largest = Math.max(largest, idNumber(staff.getPersonId(), prefix));
             largest = Math.max(largest, idNumber(staff.getEmployeeId(), prefix));
         }
-        for (Person person : donors) largest = Math.max(largest, idNumber(person.getPersonId(), prefix));
-        for (Person person : patients) largest = Math.max(largest, idNumber(person.getPersonId(), prefix));
+        for (Person<?> person : donors) largest = Math.max(largest, idNumber(person.getPersonId(), prefix));
+        for (Person<?> person : patients) largest = Math.max(largest, idNumber(person.getPersonId(), prefix));
         for (BloodDonation donation : donations) largest = Math.max(largest, idNumber(donation.getTransactionId(), prefix));
         for (BloodRequest request : requests) largest = Math.max(largest, idNumber(request.getTransactionId(), prefix));
         for (BloodTransfer transfer : transfers) largest = Math.max(largest, idNumber(transfer.getTransactionId(), prefix));

@@ -4,7 +4,7 @@ import bloodbank.Main;
 import bloodbank.utility.Validation;
 
 
-public class Patient extends Person {
+public class Patient extends Person<Patient> {
     private String bloodGroup;
     private String disease;
     private String doctorName;

@@ -7,7 +7,7 @@ import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoUnit;
 
-public class Donor extends Person {
+public class Donor extends Person<Donor> {
     private String bloodGroup;
     private double haemoglobin;
     private double weight;
