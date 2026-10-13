@@ -46,16 +46,16 @@ public class Menu {
 
         boolean authenticated = Main.loginManager.authenticateUser(username, password);
         if (authenticated) {
-            Person user = Main.loginManager.getLoggedInUser();
-            System.out.println("\nLogin Successful! Welcome, " + user.getName() + " [" + user.getRole() + "]");
+            String role = Main.loginManager.getUserRole();
+            System.out.println("\nLogin Successful! Welcome, " + Main.loginManager.getLoggedInName() + " [" + role + "]");
             
-            if ("BLOOD_BANK_ADMIN".equalsIgnoreCase(user.getRole())) {
+            if ("BLOOD_BANK_ADMIN".equalsIgnoreCase(role)) {
                 adminMenu();
-            } else if ("HOSPITAL_STAFF".equalsIgnoreCase(user.getRole())) {
+            } else if ("HOSPITAL_STAFF".equalsIgnoreCase(role)) {
                 staffMenu();
-            } else if ("DONOR".equalsIgnoreCase(user.getRole())) {
+            } else if ("DONOR".equalsIgnoreCase(role)) {
                 donorMenu();
-            } else if ("PATIENT".equalsIgnoreCase(user.getRole())) {
+            } else if ("PATIENT".equalsIgnoreCase(role)) {
                 patientMenu();
             }
         } else {
@@ -64,7 +64,7 @@ public class Menu {
     }
     // --- Donor Dashboard Menu ---
     public void donorMenu() {
-        Donor donor = (Donor) Main.loginManager.getLoggedInUser();
+        Donor donor = Main.loginManager.getLoggedInDonor();
         while (true) {
             System.out.println("\n==================================================");
             System.out.println("                 DONOR DASHBOARD                  ");
@@ -114,7 +114,7 @@ public class Menu {
 
     // --- Patient Dashboard Menu ---
     public void patientMenu() {
-        Patient patient = (Patient) Main.loginManager.getLoggedInUser();
+        Patient patient = Main.loginManager.getLoggedInPatient();
         while (true) {
             System.out.println("\n==================================================");
             System.out.println("                PATIENT DASHBOARD                 ");
@@ -154,7 +154,7 @@ public class Menu {
 
     // --- Hospital Staff Dashboard Menu ---
     public void staffMenu() {
-        HospitalStaff staff = (HospitalStaff) Main.loginManager.getLoggedInUser();
+        HospitalStaff staff = Main.loginManager.getLoggedInStaff();
         Hospital hospital = null;
         for (Hospital h : Main.hospitals) {
             if (h.getOrganizationId().equals(staff.getFacilityId())) {
@@ -229,7 +229,7 @@ public class Menu {
 
     // --- Blood Bank Admin Dashboard Menu ---
     public void adminMenu() {
-        BloodBankAdmin admin = (BloodBankAdmin) Main.loginManager.getLoggedInUser();
+        BloodBankAdmin admin = Main.loginManager.getLoggedInAdmin();
         while (true) {
             System.out.println("\n==================================================");
             System.out.println("            BLOOD BANK ADMIN DASHBOARD            ");
@@ -262,8 +262,16 @@ public class Menu {
                 case 2: admin.approvePassedDonations(); break;
                 case 3: admin.reviewHospitalRestockRequests(); break;
                 case 4:
-                    System.out.println("\nCentral Inventory Stock:");
-                    Main.inventory.displayInventory();
+                    System.out.println("\n--- Central Blood Bank Facility & Inventory ---");
+                    if (Main.bloodBank != null) {
+                        // Dynamic polymorphism via Parent reference
+                        Main.bloodBank.displayOrganization();
+                        // Explicit typecast from parent reference to child class BloodBank
+                        BloodBank centralBank = (BloodBank) Main.bloodBank;
+                        centralBank.viewInventory();
+                    } else {
+                        Main.inventory.displayInventory();
+                    }
                     break;
                 case 5:
                     Main.alertManager.displayHospitalStock();

@@ -427,8 +427,10 @@ public class FileManager {
     public void saveAllBloodUnits(String path) {
         ensureFileExists(path);
         try (BufferedWriter bw = new BufferedWriter(new FileWriter(path))) {
-            // Save the shared central inventory once under the first blood bank.
-            String bankId = Main.bloodBanks.isEmpty() ? "BB001" : Main.bloodBanks.get(0).getOrganizationId();
+            // Save the shared central inventory once under the central blood bank.
+            String bankId = (Main.bloodBank != null)
+                    ? Main.bloodBank.getOrganizationId()
+                    : (Main.bloodBanks.isEmpty() ? "BB001" : Main.bloodBanks.get(0).getOrganizationId());
             for (BloodUnit bu : Main.inventory.getBloodUnits()) {
                 bw.write(String.join(",",
                     bu.getBloodUnitId(), bu.getBloodGroup(), String.valueOf(bu.getQuantity()),
@@ -452,6 +454,7 @@ public class FileManager {
     }
 
     private boolean isBloodBankId(String facilityId) {
+        if (Main.bloodBank != null && Main.bloodBank.getOrganizationId().equals(facilityId)) return true;
         for (BloodBank bb : Main.bloodBanks) {
             if (bb.getOrganizationId().equals(facilityId)) return true;
         }

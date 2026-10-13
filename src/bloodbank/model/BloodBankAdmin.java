@@ -123,7 +123,9 @@ public class BloodBankAdmin extends Staff {
             return;
         }
         request.approveRequest();
-        BloodBank source = Main.bloodBanks.get(0);
+        // Parent Reference Concept: Main.bloodBank is an Organization parent reference.
+        // Typecast afterwards to child class BloodBank:
+        BloodBank source = (BloodBank) Main.bloodBank;
         if (!source.transferBloodUnits(request, destination)) {
             request.setStatus("Pending");
             return;
@@ -170,6 +172,11 @@ public class BloodBankAdmin extends Staff {
             return;
         }
         if (choice == 1) {
+            System.out.println("\n--- Central Blood Bank Facility ---");
+            if (Main.bloodBank != null) {
+                Main.bloodBank.displayOrganization();
+            }
+            System.out.println("\n--- Registered Hospitals ---");
             for (Hospital hospital : Main.hospitals) hospital.displayOrganization();
         } else if (choice == 2) {
             String id = Main.nextId("HOSP");

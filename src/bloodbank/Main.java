@@ -18,6 +18,9 @@ public class Main {
     public static List<Donor> donors = new ArrayList<>();
     public static List<Patient> patients = new ArrayList<>();
     public static List<Hospital> hospitals = new ArrayList<>();
+    // Parent Reference Concept: Parent class reference holding Child class object directly (Organization o = new BloodBank)
+    public static Organization bloodBank;
+    public static Organization organization;
     public static List<BloodBank> bloodBanks = new ArrayList<>();
     public static List<BloodDonation> donations = new ArrayList<>();
     public static List<BloodRequest> requests = new ArrayList<>();
@@ -85,9 +88,13 @@ public class Main {
             bloodBanks.add(centralBank);
             bloodBanksChanged = true;
         }
-        for (BloodBank bloodBank : bloodBanks) {
-            bloodBank.setInventory(inventory);
+        for (BloodBank bank : bloodBanks) {
+            bank.setInventory(inventory);
         }
+        // Parent Reference Concept: Direct object creation using parent reference (Organization o = new BloodBank(...))
+        Organization o = centralBank;
+        bloodBank = o;
+        organization = o;
         if (bloodBanksChanged) {
             saveBloodBanksToFile();
         }
@@ -217,7 +224,14 @@ public class Main {
     }
 
     public static void saveBloodBanksToFile() {
-        FileManager.saveBloodBanks(BLOODBANKS_FILE, bloodBanks);
+        if (bloodBank instanceof BloodBank) {
+            List<BloodBank> list = new ArrayList<>();
+            // Typecast afterwards from parent reference Organization to child class BloodBank
+            list.add((BloodBank) bloodBank);
+            FileManager.saveBloodBanks(BLOODBANKS_FILE, list);
+        } else {
+            FileManager.saveBloodBanks(BLOODBANKS_FILE, bloodBanks);
+        }
     }
 
     public static void saveDonationsToFile() {
@@ -255,7 +269,9 @@ public class Main {
         for (BloodRequest request : requests) largest = Math.max(largest, idNumber(request.getTransactionId(), prefix));
         for (BloodTransfer transfer : transfers) largest = Math.max(largest, idNumber(transfer.getTransactionId(), prefix));
         for (Hospital hospital : hospitals) largest = Math.max(largest, idNumber(hospital.getOrganizationId(), prefix));
-        for (BloodBank bank : bloodBanks) largest = Math.max(largest, idNumber(bank.getOrganizationId(), prefix));
+        if (bloodBank != null) {
+            largest = Math.max(largest, idNumber(bloodBank.getOrganizationId(), prefix));
+        }
         return prefix + String.format("%03d", largest + 1);
     }
 

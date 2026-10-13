@@ -3,29 +3,38 @@ package bloodbank.service;
 import bloodbank.Main;
 import bloodbank.model.*;
 import bloodbank.utility.Validation;
-import java.util.List;
 
 public class LoginManager {
     private String username;
     private String password;
-    private Person loggedInUser;
+    private String userRole;
+    private BloodBankAdmin loggedInAdmin;
+    private HospitalStaff loggedInStaff;
+    private Donor loggedInDonor;
+    private Patient loggedInPatient;
 
     public LoginManager() {
         this.username = "";
         this.password = "";
-        this.loggedInUser = null;
+        this.userRole = "";
+        this.loggedInAdmin = null;
+        this.loggedInStaff = null;
+        this.loggedInDonor = null;
+        this.loggedInPatient = null;
     }
 
     public boolean isUsernameTaken(String username) {
-        return usernameExists(Main.admins, username)
-                || usernameExists(Main.hospitalStaffs, username)
-                || usernameExists(Main.donors, username)
-                || usernameExists(Main.patients, username);
-    }
-
-    private <T extends Person> boolean usernameExists(List<T> people, String username) {
-        for (T person : people) {
-            if (person.getUsername().equalsIgnoreCase(username)) return true;
+        for (BloodBankAdmin admin : Main.admins) {
+            if (admin.getUsername().equalsIgnoreCase(username)) return true;
+        }
+        for (HospitalStaff staff : Main.hospitalStaffs) {
+            if (staff.getUsername().equalsIgnoreCase(username)) return true;
+        }
+        for (Donor donor : Main.donors) {
+            if (donor.getUsername().equalsIgnoreCase(username)) return true;
+        }
+        for (Patient patient : Main.patients) {
+            if (patient.getUsername().equalsIgnoreCase(username)) return true;
         }
         return false;
     }
@@ -141,56 +150,99 @@ public class LoginManager {
     public String getPassword() { return password; }
     public void setPassword(String password) { this.password = password; }
 
-    public Person getLoggedInUser() { return loggedInUser; }
+    public String getUserRole() { return userRole; }
+    public BloodBankAdmin getLoggedInAdmin() { return loggedInAdmin; }
+    public HospitalStaff getLoggedInStaff() { return loggedInStaff; }
+    public Donor getLoggedInDonor() { return loggedInDonor; }
+    public Patient getLoggedInPatient() { return loggedInPatient; }
 
-    private <T extends Person> Person findPerson(List<T> people, String username) {
-        for (T person : people) {
-            if (person.getUsername().equalsIgnoreCase(username)) return person;
-        }
-        return null;
+    public String getLoggedInName() {
+        if (loggedInAdmin != null) return loggedInAdmin.getName();
+        if (loggedInStaff != null) return loggedInStaff.getName();
+        if (loggedInDonor != null) return loggedInDonor.getName();
+        if (loggedInPatient != null) return loggedInPatient.getName();
+        return "";
     }
 
     public boolean authenticateUser(String username, String password) {
-        Person person = findPerson(Main.admins, username);
-        if (person == null) person = findPerson(Main.hospitalStaffs, username);
-        if (person == null) person = findPerson(Main.donors, username);
-        if (person == null) person = findPerson(Main.patients, username);
+        // Clear previous state
+        this.loggedInAdmin = null;
+        this.loggedInStaff = null;
+        this.loggedInDonor = null;
+        this.loggedInPatient = null;
+        this.userRole = "";
 
-        if (person != null && person.getPassword().equals(password)) {
-            this.username = username;
-            this.password = password;
-            this.loggedInUser = person;
-            return true;
+        for (BloodBankAdmin admin : Main.admins) {
+            if (admin.getUsername().equalsIgnoreCase(username) && admin.getPassword().equals(password)) {
+                this.username = username;
+                this.password = password;
+                this.userRole = "BLOOD_BANK_ADMIN";
+                this.loggedInAdmin = admin;
+                return true;
+            }
+        }
+        for (HospitalStaff staff : Main.hospitalStaffs) {
+            if (staff.getUsername().equalsIgnoreCase(username) && staff.getPassword().equals(password)) {
+                this.username = username;
+                this.password = password;
+                this.userRole = "HOSPITAL_STAFF";
+                this.loggedInStaff = staff;
+                return true;
+            }
+        }
+        for (Donor donor : Main.donors) {
+            if (donor.getUsername().equalsIgnoreCase(username) && donor.getPassword().equals(password)) {
+                this.username = username;
+                this.password = password;
+                this.userRole = "DONOR";
+                this.loggedInDonor = donor;
+                return true;
+            }
+        }
+        for (Patient patient : Main.patients) {
+            if (patient.getUsername().equalsIgnoreCase(username) && patient.getPassword().equals(password)) {
+                this.username = username;
+                this.password = password;
+                this.userRole = "PATIENT";
+                this.loggedInPatient = patient;
+                return true;
+            }
         }
         return false;
     }
 
     public void changePassword(String newPassword) {
-        if (loggedInUser == null) {
+        if (loggedInAdmin == null && loggedInStaff == null && loggedInDonor == null && loggedInPatient == null) {
             System.out.println("No user is currently logged in.");
             return;
         }
-        
-        loggedInUser.setPassword(newPassword);
+
         this.password = newPassword;
 
-        // Save updated details to corresponding files
-        if (loggedInUser instanceof BloodBankAdmin) {
+        if (loggedInAdmin != null) {
+            loggedInAdmin.setPassword(newPassword);
             Main.saveAdminsToFile();
-        } else if (loggedInUser instanceof HospitalStaff) {
+        } else if (loggedInStaff != null) {
+            loggedInStaff.setPassword(newPassword);
             Main.saveHospitalStaffsToFile();
-        } else if (loggedInUser instanceof Donor) {
+        } else if (loggedInDonor != null) {
+            loggedInDonor.setPassword(newPassword);
             Main.saveDonorsToFile();
-        } else if (loggedInUser instanceof Patient) {
+        } else if (loggedInPatient != null) {
+            loggedInPatient.setPassword(newPassword);
             Main.savePatientsToFile();
         }
         System.out.println("Password changed successfully.");
     }
 
     public void logoutUser() {
-        if (loggedInUser != null) {
-            System.out.println("User '" + loggedInUser.getUsername() + "' logged out successfully.");
-            loggedInUser = null;
+        if (loggedInAdmin != null || loggedInStaff != null || loggedInDonor != null || loggedInPatient != null) {
+            System.out.println("User '" + username + "' logged out successfully.");
+            this.loggedInAdmin = null;
+            this.loggedInStaff = null;
+            this.loggedInDonor = null;
+            this.loggedInPatient = null;
+            this.userRole = "";
             this.username = "";
             this.password = "";
         } else {
