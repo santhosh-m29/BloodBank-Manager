@@ -36,8 +36,15 @@ public class TransactionManager<T extends Transaction> implements Iterable<T> {
         return null;
     }
 
+    // Remove by object reference
     public boolean remove(T transaction) {
         return transactions.remove(transaction);
+    }
+
+    // Method Overloading: Remove by transaction ID
+    public boolean remove(String transactionId) {
+        T found = findById(transactionId);
+        return found != null && transactions.remove(found);
     }
 
     public List<T> getTransactions() {

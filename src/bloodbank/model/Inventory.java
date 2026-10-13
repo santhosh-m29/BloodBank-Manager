@@ -42,20 +42,31 @@ public class Inventory {
         return false;
     }
 
+    // Method Overloading: Search available blood units by group (default minimum quantity of 1)
     public BloodUnit[] searchBloodGroup(String bloodGroup) {
+        return searchBloodGroup(bloodGroup, 1);
+    }
+
+    // Method Overloading: Search available blood units by group with a minimum quantity threshold
+    public BloodUnit[] searchBloodGroup(String bloodGroup, int minQuantity) {
         List<BloodUnit> result = new ArrayList<>();
         for (BloodUnit bu : bloodUnits) {
-            if (bu.getBloodGroup().equalsIgnoreCase(bloodGroup) && "AVAILABLE".equalsIgnoreCase(bu.getStatus()) && !bu.isExpired()) {
+            if (bu.getBloodGroup().equalsIgnoreCase(bloodGroup)
+                    && "AVAILABLE".equalsIgnoreCase(bu.getStatus())
+                    && !bu.isExpired()
+                    && bu.getQuantity() >= minQuantity) {
                 result.add(bu);
             }
         }
         return result.toArray(new BloodUnit[0]);
     }
 
+    // Method Overloading: Get stock by blood group (default status: AVAILABLE)
     public int getStockForGroup(String bloodGroup) {
         return getStockForGroup(bloodGroup, "AVAILABLE");
     }
 
+    // Method Overloading: Get stock by blood group and specific status
     public int getStockForGroup(String bloodGroup, String status) {
         int qty = 0;
         for (BloodUnit bu : bloodUnits) {
