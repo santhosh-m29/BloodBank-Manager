@@ -91,7 +91,7 @@ public class Main {
         for (BloodBank bank : bloodBanks) {
             bank.setInventory(inventory);
         }
-        // Parent Reference Concept: Direct object creation using parent reference (Organization o = new BloodBank(...))
+        
         Organization o = centralBank;
         bloodBank = o;
         organization = o;
